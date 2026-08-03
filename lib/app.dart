@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'core/theme/app_theme.dart';
+import 'presentation/analytics/analytics_screen.dart';
 import 'presentation/home/home_screen.dart';
 
 class AppScreen extends StatefulWidget {
@@ -10,10 +11,17 @@ class AppScreen extends StatefulWidget {
 }
 
 class _AppScreenState extends State<AppScreen> {
+  int _currentIndex = 0;
+
+  final List<Widget> _pages = [
+    const HomeScreen(),
+    const AnalyticsScreen(),
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: const HomeScreen(),
+      body: _pages[_currentIndex],
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           border: Border(
@@ -22,8 +30,11 @@ class _AppScreenState extends State<AppScreen> {
         ),
         child: BottomNavigationBar(
           iconSize: 28,
-          currentIndex: 0,
+          currentIndex: _currentIndex,
           onTap: (index) {
+            setState(() {
+              _currentIndex = index;
+            });
           },
           items: const [
             BottomNavigationBarItem(
