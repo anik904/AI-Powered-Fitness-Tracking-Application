@@ -1,3 +1,4 @@
+import 'package:ai_fitness_tracker/presentation/challenge/challenge_screen.dart';
 import 'package:flutter/material.dart';
 import 'core/theme/app_theme.dart';
 import 'presentation/analytics/analytics_screen.dart';
@@ -15,6 +16,7 @@ class _AppScreenState extends State<AppScreen> {
 
   final List<Widget> _pages = [
     const HomeScreen(),
+    const ChallengeScreen(),
     const AnalyticsScreen(),
   ];
 
