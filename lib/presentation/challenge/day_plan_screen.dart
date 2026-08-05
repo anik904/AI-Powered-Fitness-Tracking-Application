@@ -105,7 +105,7 @@ class DayPlanScreen extends StatelessWidget {
                   const SizedBox(height: 8),
                   LinearProgressIndicator(
                     value: progress,
-                    backgroundColor: theme.colorScheme.surfaceVariant,
+                    backgroundColor: theme.colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(2),
                     minHeight: 4,
                   ),

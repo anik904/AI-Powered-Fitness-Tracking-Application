@@ -38,7 +38,7 @@ class ProgressMilestoneSection extends StatelessWidget {
         height: 4,
         color: active 
             ? Theme.of(context).colorScheme.primary 
-            : Theme.of(context).colorScheme.surfaceVariant,
+            : Theme.of(context).colorScheme.surfaceContainerHighest,
       ),
     );
   }
@@ -52,7 +52,7 @@ class ProgressMilestoneSection extends StatelessWidget {
           height: 32,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: active ? theme.colorScheme.primary : theme.colorScheme.surfaceVariant,
+            color: active ? theme.colorScheme.primary : theme.colorScheme.surfaceContainerHighest,
           ),
           alignment: Alignment.center,
           child: Text(

@@ -38,7 +38,7 @@ class ChallengeOverviewCard extends StatelessWidget {
           const SizedBox(height: 12),
           LinearProgressIndicator(
             value: 0.4,
-            backgroundColor: theme.colorScheme.surfaceVariant,
+            backgroundColor: theme.colorScheme.surfaceContainerHighest,
             color: theme.colorScheme.primary,
             minHeight: 8,
             borderRadius: BorderRadius.circular(4),

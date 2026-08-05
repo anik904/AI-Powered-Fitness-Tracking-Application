@@ -18,18 +18,36 @@ class AppTheme {
         primary: accentColor,
         secondary: accentColor,
         surface: cardColor,
-        background: background,
         onPrimary: Colors.white,
         onSecondary: Colors.white,
         onSurface: textPrimary,
-        onBackground: textPrimary,
       ),
       textTheme: GoogleFonts.poppinsTextTheme().copyWith(
-        headlineMedium: GoogleFonts.poppins(color: textPrimary, fontWeight: FontWeight.w700, fontSize: 24),
-        titleLarge: GoogleFonts.poppins(color: textPrimary, fontWeight: FontWeight.w600, fontSize: 20),
-        titleMedium: GoogleFonts.poppins(color: textPrimary, fontWeight: FontWeight.w600, fontSize: 16),
-        bodyLarge: GoogleFonts.poppins(color: textPrimary, fontSize: 16, fontWeight: FontWeight.w400),
-        bodyMedium: GoogleFonts.poppins(color: textSecondary, fontSize: 14, fontWeight: FontWeight.w400),
+        headlineMedium: GoogleFonts.poppins(
+          color: textPrimary,
+          fontWeight: FontWeight.w700,
+          fontSize: 24,
+        ),
+        titleLarge: GoogleFonts.poppins(
+          color: textPrimary,
+          fontWeight: FontWeight.w600,
+          fontSize: 20,
+        ),
+        titleMedium: GoogleFonts.poppins(
+          color: textPrimary,
+          fontWeight: FontWeight.w600,
+          fontSize: 16,
+        ),
+        bodyLarge: GoogleFonts.poppins(
+          color: textPrimary,
+          fontSize: 16,
+          fontWeight: FontWeight.w400,
+        ),
+        bodyMedium: GoogleFonts.poppins(
+          color: textSecondary,
+          fontSize: 14,
+          fontWeight: FontWeight.w400,
+        ),
       ),
 
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(

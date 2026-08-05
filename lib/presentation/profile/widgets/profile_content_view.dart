@@ -135,7 +135,7 @@ class _ProfileContentViewState extends State<ProfileContentView> {
                   secondary: Icon(Icons.autorenew, color: Theme.of(context).colorScheme.primary),
                   title: Text('Automatic Sync', style: Theme.of(context).textTheme.bodyLarge),
                   value: _autoSync,
-                  activeColor: Theme.of(context).colorScheme.primary,
+                  activeThumbColor: Theme.of(context).colorScheme.primary,
                   onChanged: (value) {
                     setState(() {
                       _autoSync = value;
