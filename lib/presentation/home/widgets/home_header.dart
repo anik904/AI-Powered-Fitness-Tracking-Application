@@ -1,3 +1,4 @@
+import 'package:ai_fitness_tracker/presentation/profile/profile_screeen.dart';
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 
@@ -20,7 +21,10 @@ class HomeHeader extends StatelessWidget implements PreferredSizeWidget {
           padding: const EdgeInsets.only(right: 16.0),
           child: GestureDetector(
             onTap: () {
-              
+               Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ProfileScreen()),
+              );
             },
             child: const CircleAvatar(
               radius: 20,
