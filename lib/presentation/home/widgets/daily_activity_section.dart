@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/widgets/custom_card.dart';
+import '../../../widgets/custom_card.dart';
 
 class DailyActivitySection extends StatelessWidget {
   const DailyActivitySection({super.key});

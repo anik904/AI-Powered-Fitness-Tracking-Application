@@ -1,5 +1,5 @@
-import 'package:ai_fitness_tracker/core/widgets/custom_button.dart';
-import 'package:ai_fitness_tracker/core/widgets/custom_text_field.dart';
+import 'package:ai_fitness_tracker/widgets/custom_button.dart';
+import 'package:ai_fitness_tracker/widgets/custom_text_field.dart';
 import 'package:flutter/material.dart';
 
 

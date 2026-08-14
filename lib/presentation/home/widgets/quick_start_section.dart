@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../repository/model/exercise_type.dart';
+import '../../../repository/model/exercise_workout_data.dart';
+import '../../exercise/exercise_instruction_screen.dart';
 
 class QuickStartSection extends StatelessWidget {
   const QuickStartSection({super.key});
@@ -17,21 +20,44 @@ class QuickStartSection extends StatelessWidget {
         _buildExerciseCard(
           title: 'Push-ups',
           icon: Icons.fitness_center,
-          onTap: () {},
+          onTap: () => _showComingSoon(context, 'Push-ups'),
         ),
         const SizedBox(height: 12),
         _buildExerciseCard(
           title: 'Squats',
           icon: Icons.accessibility_new,
-          onTap: () {},
+          onTap: () => _startSquatWorkout(context),
         ),
         const SizedBox(height: 12),
         _buildExerciseCard(
           title: 'Jumping Jacks',
           icon: Icons.directions_run,
-          onTap: () {},
+          onTap: () => _showComingSoon(context, 'Jumping Jacks'),
         ),
       ],
+    );
+  }
+
+  void _startSquatWorkout(BuildContext context) {
+    final sessionOption = exerciseMatchOptions[ExerciseType.squat]!.firstWhere(
+      (option) => option.reps == 20,
+      orElse: () => exerciseMatchOptions[ExerciseType.squat]!.first,
+    );
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ExerciseInstructionScreen(
+          exerciseType: ExerciseType.squat,
+          sessionOption: sessionOption,
+        ),
+      ),
+    );
+  }
+
+  void _showComingSoon(BuildContext context, String exerciseName) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$exerciseName is not wired yet.')),
     );
   }
 

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 
-import '../../../core/widgets/custom_card.dart';
+import '../../../widgets/custom_card.dart';
 
 class DailyActivityLegacy extends StatelessWidget {
   const DailyActivityLegacy({super.key});
@@ -71,7 +71,7 @@ class DailyActivityLegacy extends StatelessWidget {
                     SizedBox(height: 12),
                     _ActivityStat(icon: Icons.accessibility_new, title: 'Squat', value: '3/10'),
                     SizedBox(height: 12),
-                    _ActivityStat(icon: Icons.timer, title: 'Plank', value: '5/6m'),
+                    _ActivityStat(icon: Icons.timer, title: 'Jumping Jack', value: '5/6m'),
                   ],
                 ),
               ),
@@ -89,7 +89,6 @@ class _ActivityStat extends StatelessWidget {
   final String value;
 
   const _ActivityStat({
-    super.key,
     required this.icon,
     required this.title,
     required this.value,

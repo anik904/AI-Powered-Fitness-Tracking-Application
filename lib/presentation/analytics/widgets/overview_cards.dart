@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../core/widgets/custom_card.dart';
+import '../../../widgets/custom_card.dart';
 
 class OverviewCards extends StatelessWidget {
   const OverviewCards({super.key});

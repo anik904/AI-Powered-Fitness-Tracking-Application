@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'section_container.dart';
 
-import '../../../core/widgets/custom_card.dart';
+import '../../../widgets/custom_card.dart';
 
 class ChallengeProgress extends StatelessWidget {
   const ChallengeProgress({super.key});

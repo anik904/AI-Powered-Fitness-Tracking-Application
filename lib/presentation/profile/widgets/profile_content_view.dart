@@ -1,5 +1,5 @@
-import 'package:ai_fitness_tracker/core/widgets/custom_button.dart';
-import 'package:ai_fitness_tracker/core/widgets/custom_card.dart';
+import 'package:ai_fitness_tracker/widgets/custom_button.dart';
+import 'package:ai_fitness_tracker/widgets/custom_card.dart';
 import 'package:flutter/material.dart';
 import '../auth/login_screen.dart';
 import 'profile_section_header.dart';
