@@ -1,22 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'core/theme/app_theme.dart';
+import 'core/providers/shared_preferences_provider.dart';
+import 'presentation/onboarding/onboarding_screen.dart';
 import 'app.dart';
 
-void main() {
-  runApp(const ProviderScope(child: MyApp()));
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  final sharedPreferences = await SharedPreferences.getInstance();
+  
+  runApp(
+    ProviderScope(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(sharedPreferences),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final hasCompletedOnboarding = ref.watch(onboardingStatusProvider);
+
     return MaterialApp(
       title: 'Fitness App',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      home: const AppScreen(),
+      home: hasCompletedOnboarding ? const AppScreen() : const OnboardingScreen(),
     );
   }
 }

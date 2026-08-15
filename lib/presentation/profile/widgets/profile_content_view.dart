@@ -1,12 +1,16 @@
 import 'package:ai_fitness_tracker/widgets/custom_button.dart';
 import 'package:ai_fitness_tracker/widgets/custom_card.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/provider/exercise_goal_provider.dart';
+import '../../../core/providers/shared_preferences_provider.dart';
+import '../../../repository/model/exercise_type.dart';
 import '../auth/login_screen.dart';
 import 'profile_section_header.dart';
 import 'settings_list_tile.dart';
 
 
-class ProfileContentView extends StatefulWidget {
+class ProfileContentView extends ConsumerStatefulWidget {
   final bool isSignedIn;
   final VoidCallback onSignOut;
   final VoidCallback onLoginSuccess;
@@ -19,14 +23,115 @@ class ProfileContentView extends StatefulWidget {
   });
 
   @override
-  State<ProfileContentView> createState() => _ProfileContentViewState();
+  ConsumerState<ProfileContentView> createState() => _ProfileContentViewState();
 }
 
-class _ProfileContentViewState extends State<ProfileContentView> {
+class _ProfileContentViewState extends ConsumerState<ProfileContentView> {
   bool _autoSync = true;
+
+  int _goalForType(List<ExerciseGoal> goals, ExerciseType type, int fallback) {
+    for (final goal in goals) {
+      if (goal.cardData.routeType == type) {
+        return goal.target;
+      }
+    }
+    return fallback;
+  }
+
+  String _goalSummary({
+    required int pushup,
+    required int squat,
+    required int jumpingJack,
+  }) {
+    return 'Push-ups: $pushup, Squats: $squat, Jumping Jacks: $jumpingJack reps/day';
+  }
+
+  Future<void> _showSingleGoalEditor({
+    required BuildContext context,
+    required List<ExerciseGoal> goals,
+    required ExerciseType type,
+    required String title,
+    required int fallback,
+  }) async {
+    String goalText = _goalForType(goals, type, fallback).toString();
+
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text('Update $title Goal'),
+          content: TextFormField(
+            onChanged: (value) => goalText = value,
+            keyboardType: TextInputType.number,
+            initialValue: goalText,
+            decoration: const InputDecoration(
+              labelText: 'Daily reps',
+              suffixText: 'reps',
+            ),
+            autofocus: true,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (saved != true || !mounted) {
+      return;
+    }
+
+    final value = int.tryParse(goalText.trim());
+
+    if (value == null || value <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid goal greater than 0.')),
+      );
+      return;
+    }
+
+    final currentPushup = _goalForType(goals, ExerciseType.pushup, 20);
+    final currentSquat = _goalForType(goals, ExerciseType.squat, 20);
+    final currentJumpingJack = _goalForType(goals, ExerciseType.jumpingJack, 50);
+
+    final pushup = type == ExerciseType.pushup ? value : currentPushup;
+    final squat = type == ExerciseType.squat ? value : currentSquat;
+    final jumpingJack = type == ExerciseType.jumpingJack ? value : currentJumpingJack;
+
+    final goalNotifier = ref.read(exerciseGoalProvider.notifier);
+    goalNotifier.updateGoalByType(type, target: value);
+
+    final prefs = ref.read(sharedPreferencesProvider);
+    await prefs.setInt('pushup_goal', pushup);
+    await prefs.setInt('squat_goal', squat);
+    await prefs.setInt('jumping_jack_goal', jumpingJack);
+    await prefs.setString(
+      'user_goal',
+      _goalSummary(pushup: pushup, squat: squat, jumpingJack: jumpingJack),
+    );
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$title goal updated.')),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final goals = ref.watch(exerciseGoalProvider);
+    final prefs = ref.watch(sharedPreferencesProvider);
+    final pushupGoal = _goalForType(goals, ExerciseType.pushup, prefs.getInt('pushup_goal') ?? 20);
+    final squatGoal = _goalForType(goals, ExerciseType.squat, prefs.getInt('squat_goal') ?? 20);
+    final jumpingJackGoal = _goalForType(goals, ExerciseType.jumpingJack, prefs.getInt('jumping_jack_goal') ?? 50);
+    final userName = prefs.getString('user_name') ?? 'User';
+
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Column(
@@ -48,7 +153,7 @@ class _ProfileContentViewState extends State<ProfileContentView> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'user@example.com',
+                          userName,
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
                         const SizedBox(height: 4),
@@ -157,28 +262,44 @@ class _ProfileContentViewState extends State<ProfileContentView> {
                 SettingsListTile(
                   icon: Icons.fitness_center,
                   title: 'Daily Push-up Goal',
-                  subtitle: '50 Reps',
-                  onTap: () {},
+                  subtitle: '$pushupGoal Reps',
+                  onTap: () {
+                    _showSingleGoalEditor(
+                      context: context,
+                      goals: goals,
+                      type: ExerciseType.pushup,
+                      title: 'Push-up',
+                      fallback: 20,
+                    );
+                  },
                 ),
                 SettingsListTile(
                   icon: Icons.accessibility_new,
                   title: 'Daily Squat Goal',
-                  subtitle: '100 Reps',
-                  onTap: () {},
+                  subtitle: '$squatGoal Reps',
+                  onTap: () {
+                    _showSingleGoalEditor(
+                      context: context,
+                      goals: goals,
+                      type: ExerciseType.squat,
+                      title: 'Squat',
+                      fallback: 20,
+                    );
+                  },
                 ),
                 SettingsListTile(
                   icon: Icons.sports_gymnastics,
                   title: 'Daily Jumping Jack Goal',
-                  subtitle: '200 Reps',
-                  onTap: () {},
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: CustomButton(
-                    text: 'Update Goals',
-                    icon: Icons.save,
-                    onPressed: () {},
-                  ),
+                  subtitle: '$jumpingJackGoal Reps',
+                  onTap: () {
+                    _showSingleGoalEditor(
+                      context: context,
+                      goals: goals,
+                      type: ExerciseType.jumpingJack,
+                      title: 'Jumping Jack',
+                      fallback: 50,
+                    );
+                  },
                 ),
               ],
             ),

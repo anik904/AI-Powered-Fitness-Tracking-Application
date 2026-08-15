@@ -151,6 +151,26 @@ class ExerciseGoalNotifier extends Notifier<List<ExerciseGoal>> {
       newGoal.unit,
     );
   }
+
+  void updateGoalByType(ExerciseType type, {required int target, String unit = 'Reps'}) {
+    final index = state.indexWhere((goal) => goal.cardData.routeType == type);
+    if (index == -1) {
+      return;
+    }
+
+    final options = exerciseMatchOptions[type];
+    final selectedOption = options?.firstWhere(
+      (option) => option.reps == target,
+      orElse: () => WorkoutMatchOption(reps: target, minutes: 0, unit: unit),
+    );
+
+    updateGoal(
+      index,
+      target: target,
+      unit: unit,
+      matchOption: selectedOption,
+    );
+  }
 }
 
 final exerciseGoalProvider = NotifierProvider<ExerciseGoalNotifier, List<ExerciseGoal>>(() => ExerciseGoalNotifier());
