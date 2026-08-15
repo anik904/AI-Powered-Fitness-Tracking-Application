@@ -1,13 +1,47 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
-
 import '../../../widgets/custom_card.dart';
+import '../../../core/provider/exercise_goal_provider.dart';
+import '../../../core/provider/workout_provider.dart';
 
-class DailyActivityLegacy extends StatelessWidget {
-  const DailyActivityLegacy({super.key});
+class DailyActivity extends ConsumerWidget {
+  const DailyActivity({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final goals = ref.watch(exerciseGoalProvider);
+    final todayWorkouts = ref.watch(todayWorkoutProvider);
+
+    int totalProgressPercentage = 0;
+    List<Widget> statsList = [];
+
+    if (goals.isNotEmpty) {
+      double totalPercentageSum = 0;
+
+      for (var goal in goals) {
+        // Calculate progress for this goal
+        final typeWorkouts = todayWorkouts.where((w) => w.exerciseType == goal.cardData.routeType);
+        
+        int completedAmount = typeWorkouts.fold(0, (sum, w) => sum + w.reps);
+
+        double percentage = goal.target > 0 ? completedAmount / goal.target : 0.0;
+        if (percentage > 1.0) percentage = 1.0;
+        totalPercentageSum += percentage;
+
+        statsList.add(
+          _ActivityStat(
+            icon: goal.cardData.icon, 
+            title: goal.cardData.title,
+            value: '$completedAmount/${goal.target}'
+          )
+        );
+        statsList.add(const SizedBox(height: 12));
+      }
+
+      totalProgressPercentage = ((totalPercentageSum / goals.length) * 100).toInt();
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -30,24 +64,24 @@ class DailyActivityLegacy extends StatelessWidget {
                   fit: StackFit.expand,
                   children: [
                     CircularProgressIndicator(
-                      value: 0.67,
+                      value: totalProgressPercentage / 100,
                       strokeWidth: 8,
                       backgroundColor: AppTheme.background,
-                      valueColor: AlwaysStoppedAnimation<Color>(AppTheme.accentColor),
+                      valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.accentColor),
                     ),
                     Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            '67%',
-                            style: TextStyle(
+                            '$totalProgressPercentage%',
+                            style: const TextStyle(
                               color: AppTheme.textPrimary,
                               fontSize: 22,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          Text(
+                          const Text(
                             'Goal',
                             style: TextStyle(
                               color: AppTheme.textSecondary,
@@ -66,12 +100,8 @@ class DailyActivityLegacy extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    _ActivityStat(icon: Icons.fitness_center, title: 'Push up', value: '20/24'),
-                    SizedBox(height: 12),
-                    _ActivityStat(icon: Icons.accessibility_new, title: 'Squat', value: '3/10'),
-                    SizedBox(height: 12),
-                    _ActivityStat(icon: Icons.timer, title: 'Jumping Jack', value: '5/6m'),
+                  children: statsList.isNotEmpty ? statsList : [
+                    const Text("No goals set", style: TextStyle(color: AppTheme.textSecondary))
                   ],
                 ),
               ),

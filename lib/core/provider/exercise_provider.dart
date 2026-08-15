@@ -1,4 +1,3 @@
-import 'dart:async';
 
 import 'package:ai_fitness_tracker/repository/model/exercise_type.dart';
 import 'package:ai_fitness_tracker/repository/model/rep_state.dart';
@@ -79,8 +78,6 @@ class ExerciseNotifier extends Notifier<ExerciseState> {
 
   final PoseDetectorService _poseDetector = PoseDetectorService();
   final RepCounterService _repCounter = RepCounterService();
-  Timer? _secondTicker;
-  bool _isPlankHolding = false;
   bool? _pendingBodyValue;
   DateTime? _pendingBodySince;
   bool? _pendingSetupValue;
@@ -90,7 +87,6 @@ class ExerciseNotifier extends Notifier<ExerciseState> {
   ExerciseState build() {
     ref.onDispose(() {
       _poseDetector.dispose();
-      _secondTicker?.cancel();
     });
     return const ExerciseState();
   }
@@ -108,8 +104,6 @@ class ExerciseNotifier extends Notifier<ExerciseState> {
       startTime: DateTime.now(),
       sessionOption: selectedOption,
     );
-    // If this is a time-based exercise (seconds), start the per-second ticker
-    _ensureTicker();
   }
 
   void updateSessionOption(WorkoutMatchOption option) {
@@ -119,7 +113,6 @@ class ExerciseNotifier extends Notifier<ExerciseState> {
       startTime: DateTime.now(),
     );
     _repCounter.reset(state.exerciseType);
-    _ensureTicker();
   }
 
   Future<void> processFrame(
@@ -138,36 +131,21 @@ class ExerciseNotifier extends Notifier<ExerciseState> {
     final shouldCountReps = isSetupValid;
 
     int newRepCount = state.repCount;
-    // For time-based exercises (unit == 'sec'), we use plank validation
-    // and a per-second ticker to increment elapsed seconds.
-      newRepCount = shouldCountReps
-          ? _repCounter.processLandmarks(poses, state.exerciseType)
-          : state.repCount;
+    newRepCount = shouldCountReps
+        ? _repCounter.processLandmarks(poses, state.exerciseType)
+        : state.repCount;
  
 
     state = state.copyWith(
       repCount: newRepCount,
-      // RepState logic: if not counting, set to up; otherwise, keep previous or infer from rep count change
       repState: RepState.up,
       isBodyDetected: isBodyDetected,
       isSetupValid: isSetupValid,
       currentPoses: poses,
-      // sessionOption remains unchanged
     );
   }
 
-  void _ensureTicker() {
-    _secondTicker?.cancel();
-    _secondTicker = Timer.periodic(const Duration(seconds: 1), (_) {
-      final opt = state.sessionOption;
-      if (opt == null) return;
-      if (opt.unit.toLowerCase() != 'sec') return;
-      final total = opt.reps;
-      if (_isPlankHolding && state.repCount < total) {
-        state = state.copyWith(repCount: state.repCount + 1);
-      }
-    });
-  }
+
 
   void reset() {
     _repCounter.reset(state.exerciseType);
@@ -179,7 +157,6 @@ class ExerciseNotifier extends Notifier<ExerciseState> {
       isSetupValid: false,
       currentPoses: [],
     );
-    _isPlankHolding = false;
   }
 
   bool _applySetupStability(bool rawSetupValid) {

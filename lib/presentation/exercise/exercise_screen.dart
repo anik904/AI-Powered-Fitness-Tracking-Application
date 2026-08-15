@@ -7,6 +7,8 @@ import 'package:ai_fitness_tracker/widgets/pose_overlay_painter.dart';
 import 'package:ai_fitness_tracker/widgets/rep_counter_display.dart';
 import 'package:ai_fitness_tracker/repository/model/exercise_type.dart';
 import 'package:ai_fitness_tracker/repository/model/workout_match_option.dart';
+import 'package:ai_fitness_tracker/repository/model/workout_session.dart';
+import 'package:ai_fitness_tracker/core/provider/workout_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -98,9 +100,6 @@ class _ExerciseScreenState extends ConsumerState<ExerciseScreen> {
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // Main layout: camera card (rep counter inside) + compact bottom action bar
-  // ---------------------------------------------------------------------------
   Widget _buildMainLayout(BuildContext context, ExerciseState state) {
     final topPadding = MediaQuery.of(context).viewPadding.top;
     final bottomInset = MediaQuery.of(context).viewPadding.bottom;
@@ -114,7 +113,7 @@ class _ExerciseScreenState extends ConsumerState<ExerciseScreen> {
     return Column(
       children: [
         SizedBox(height: topBarHeight + 24),
-        // ── Camera card — rep counter lives INSIDE ────────────────────────
+        // Camera card — rep counter lives INSIDE
         Expanded(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 6),
@@ -124,7 +123,7 @@ class _ExerciseScreenState extends ConsumerState<ExerciseScreen> {
 
         const SizedBox(height: 24),
 
-        // ── Compact bottom action bar ─────────────────────────────
+        // bottom action bar
         Padding(
           padding: EdgeInsets.fromLTRB(24, 0, 24, bottomInset),
           child: _buildPrimaryActionButton(state),
@@ -185,11 +184,6 @@ class _ExerciseScreenState extends ConsumerState<ExerciseScreen> {
     );
   }
 
-  // Removed unused _buildCameraContent method
-
-  // ---------------------------------------------------------------------------
-  // Top bar
-  // ---------------------------------------------------------------------------
   Widget _buildTopBar(BuildContext context, ExerciseState state) {
     return Positioned(
       top: _floatingTopRowTop(context),
@@ -266,9 +260,6 @@ class _ExerciseScreenState extends ConsumerState<ExerciseScreen> {
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // Compact finish button
-  // ---------------------------------------------------------------------------
   Widget _buildPrimaryActionButton(ExerciseState state) {
     final hasReps = state.repCount > 0;
     final label = hasReps ? 'Finish' : 'Cancel';
@@ -287,8 +278,6 @@ class _ExerciseScreenState extends ConsumerState<ExerciseScreen> {
       child: DecoratedBox(
         decoration: BoxDecoration(
           gradient:
-              //hasReps
-              // ?
               const LinearGradient(
                 colors: [
                   Color.fromARGB(255, 95, 151, 255),
@@ -297,7 +286,6 @@ class _ExerciseScreenState extends ConsumerState<ExerciseScreen> {
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
               ),
-          //: null,
           borderRadius: BorderRadius.circular(32),
         ),
         child: ElevatedButton(
@@ -321,9 +309,6 @@ class _ExerciseScreenState extends ConsumerState<ExerciseScreen> {
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // Setup warning
-  // ---------------------------------------------------------------------------
   Widget _buildSetupWarning(ExerciseState state) {
     final warningText = !state.isBodyDetected
         ? 'Body not found. Move fully into frame.'
@@ -348,10 +333,17 @@ class _ExerciseScreenState extends ConsumerState<ExerciseScreen> {
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // Finish Logic
-  // ---------------------------------------------------------------------------
   void _onExerciseFinished() {
+    final state = ref.read(exerciseProvider);
+    
+    final session = WorkoutSession(
+      exerciseType: widget.exerciseType,
+      reps: state.repCount,
+      timestamp: DateTime.now(),
+    );
+    
+    ref.read(workoutProvider.notifier).addWorkout(session);
+
     showCongratulationsBottomSheet(
       context: context,
       onContinue: () => Navigator.pop(context),

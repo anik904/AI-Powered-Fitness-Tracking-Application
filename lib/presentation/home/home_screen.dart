@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'widgets/daily_activity_legacy.dart';
+import 'widgets/daily_activity.dart';
 import 'widgets/daily_motivation_section.dart';
 import 'widgets/quick_start_section.dart';
 import 'widgets/recent_workout_section.dart';
@@ -20,7 +20,7 @@ class HomeScreen extends StatelessWidget {
             children: const [
               HomeHeader(userName: 'Alex',),
               SizedBox(height: 24),
-              DailyActivityLegacy(),
+              DailyActivity(),
               SizedBox(height: 24),
               DailyMotivationSection(),
               SizedBox(height: 24),

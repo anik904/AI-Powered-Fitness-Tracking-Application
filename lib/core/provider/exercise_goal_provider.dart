@@ -4,6 +4,8 @@ import 'package:ai_fitness_tracker/repository/model/workout_match_option.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../database/database_helper.dart';
+
 
 class ExerciseCardData {
   final String title;
@@ -50,7 +52,6 @@ class ExerciseGoalNotifier extends Notifier<List<ExerciseGoal>> {
   @override
   List<ExerciseGoal> build() {
     final initial = [
-      // Default goals - choose a sensible default match option from the options map
       ExerciseGoal(
         cardData: const ExerciseCardData(
           title: 'Pushups',
@@ -81,21 +82,7 @@ class ExerciseGoalNotifier extends Notifier<List<ExerciseGoal>> {
           orElse: () => exerciseMatchOptions[ExerciseType.squat]!.first,
         ),
       ),
-      ExerciseGoal(
-        cardData: const ExerciseCardData(
-          title: 'Planks',
-          badgeColor: Color(0xFFFFD600),
-          iconBg: Color(0xFF2B2B15),
-          icon: Icons.timer,
-          routeType: ExerciseType.plank,
-        ),
-        target: 1, // default target in minutes for planks (1 min)
-        unit: 'min',
-        matchOption: exerciseMatchOptions[ExerciseType.plank]!.firstWhere(
-          (o) => o.reps == 60,
-          orElse: () => exerciseMatchOptions[ExerciseType.plank]!.first,
-        ),
-      ),
+
       ExerciseGoal(
         cardData: const ExerciseCardData(
           title: 'Jumping Jacks',
@@ -112,35 +99,57 @@ class ExerciseGoalNotifier extends Notifier<List<ExerciseGoal>> {
         ),
       ),
     ];
+    
+    Future.microtask(() => _loadFromDb());
 
     return initial;
   }
 
+  Future<void> _loadFromDb() async {
+    final db = DatabaseHelper.instance;
+    final goals = List<ExerciseGoal>.from(state);
+    
+    for (int i = 0; i < goals.length; i++) {
+      final goalData = await db.getGoal(goals[i].cardData.routeType.name);
+      if (goalData != null) {
+        goals[i] = goals[i].copyWith(
+          target: goalData['target'],
+          unit: goalData['unit'],
+        );
+      }
+    }
+    state = goals;
+  }
+
   void updateGoal(int index, {int? target, String? unit, WorkoutMatchOption? matchOption}) {
+    final oldGoal = state[index];
+    ExerciseGoal newGoal;
+
+    if (oldGoal.cardData.routeType == ExerciseType.squat) {
+      newGoal = oldGoal.copyWith(
+        target: target,
+        unit: 'Reps',
+        matchOption: matchOption ?? WorkoutMatchOption(reps: (target ?? oldGoal.target), minutes: 0, unit: 'Reps'),
+      );
+    } else {
+      newGoal = oldGoal.copyWith(
+        target: target,
+        unit: unit,
+        matchOption: matchOption,
+      );
+    }
+
     state = [
       for (int i = 0; i < state.length; i++)
-        if (i == index)
-          // Always enforce correct units: Planks = min, Squats = Reps
-          state[i].cardData.routeType == ExerciseType.plank
-              ? state[i].copyWith(
-                  target: target,
-                  unit: 'min',
-                  matchOption: matchOption ?? WorkoutMatchOption(reps: 0, minutes: (target ?? state[i].target).toDouble(), unit: 'min'),
-                )
-              : state[i].cardData.routeType == ExerciseType.squat
-                  ? state[i].copyWith(
-                      target: target,
-                      unit: 'Reps',
-                      matchOption: matchOption ?? WorkoutMatchOption(reps: (target ?? state[i].target), minutes: 0, unit: 'Reps'),
-                    )
-                  : state[i].copyWith(
-                      target: target,
-                      unit: unit,
-                      matchOption: matchOption,
-                    )
-        else
-          state[i],
+        if (i == index) newGoal else state[i],
     ];
+
+    // Save to DB
+    DatabaseHelper.instance.saveGoal(
+      newGoal.cardData.routeType.name,
+      newGoal.target,
+      newGoal.unit,
+    );
   }
 }
 

@@ -44,20 +44,7 @@ const Map<ExerciseType, ExerciseInstructionData> exerciseInstructions = {
       'Drive through your heels to return to standing.',
     ],
   ),
-  ExerciseType.plank: ExerciseInstructionData(
-    setupTitle: 'Set Up Your Plank View',
-    setupSteps: [
-      'Place your phone on the floor in front of you with the screen facing up.',
-      'Get into a position where the camera can clearly see your shoulders and hips.',
-      'Keep your body long and straight before you start the hold.',
-    ],
-    howToTitle: 'How to Do Planks',
-    howToSteps: [
-      'Hold a straight line from head to heels.',
-      'Keep your elbows under your shoulders and your core tight.',
-      'Breathe steadily and avoid letting your hips sag.',
-    ],
-  ),
+
   ExerciseType.jumpingJack: ExerciseInstructionData(
     setupTitle: 'Set Up Your Jumping Jack View',
     setupSteps: [
@@ -85,11 +72,7 @@ const Map<ExerciseType, List<WorkoutMatchOption>> exerciseMatchOptions = {
     WorkoutMatchOption(reps: 20, minutes: 5, unit: 'Reps'),
     WorkoutMatchOption(reps: 30, minutes: 8, unit: 'Reps'),
   ],
-  ExerciseType.plank: [
-    WorkoutMatchOption(reps: 30, minutes: 1, unit: 'sec'),
-    WorkoutMatchOption(reps: 60, minutes: 2, unit: 'sec'),
-    WorkoutMatchOption(reps: 90, minutes: 3, unit: 'sec'),
-  ],
+
   ExerciseType.jumpingJack: [
     WorkoutMatchOption(reps: 25, minutes: 3, unit: 'Reps'),
     WorkoutMatchOption(reps: 50, minutes: 5, unit: 'Reps'),

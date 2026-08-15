@@ -1,4 +1,3 @@
-import 'package:ai_fitness_tracker/core/constant/app_colors.dart';
 import 'package:ai_fitness_tracker/core/provider/exercise_provider.dart';
 import 'package:ai_fitness_tracker/repository/model/exercise_type.dart';
 import 'package:flutter/material.dart';
@@ -8,7 +7,7 @@ import 'package:flutter/material.dart';
 Future<void> showExerciseInfoSheet(BuildContext context, ExerciseType exerciseType, ExerciseState state) async {
   await showModalBottomSheet(
     context: context,
-    backgroundColor: AppColors.surface,
+    backgroundColor: Colors.white,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
@@ -21,7 +20,7 @@ Future<void> showExerciseInfoSheet(BuildContext context, ExerciseType exerciseTy
           Text(
             exerciseType.displayName,
             style: const TextStyle(
-              color: AppColors.textPrimary,
+              color: Colors.black87,
               fontWeight: FontWeight.w700,
               fontSize: 22,
             ),
@@ -32,7 +31,7 @@ Future<void> showExerciseInfoSheet(BuildContext context, ExerciseType exerciseTy
           Text(
             exerciseType.instruction,
             style: const TextStyle(
-              color: AppColors.textSecondary,
+              color: Colors.black54,
               fontSize: 15,
               height: 1.4,
             ),

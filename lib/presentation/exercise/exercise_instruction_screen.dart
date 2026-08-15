@@ -5,12 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'exercise_screen.dart';
 
-/// Two-step instruction screen shown before starting the exercise.
-///
-/// Step 0 → Phone placement instructions (setupTitle + setupSteps)
-/// Step 1 → How-to-do-it instructions  (howToTitle + howToSteps)
-///
-/// After both steps the exercise screen is pushed.
 class ExerciseInstructionScreen extends StatefulWidget {
   final ExerciseType exerciseType;
   final WorkoutMatchOption sessionOption;
@@ -29,7 +23,7 @@ class ExerciseInstructionScreen extends StatefulWidget {
 class _ExerciseInstructionScreenState extends State<ExerciseInstructionScreen>
     with SingleTickerProviderStateMixin {
   late final ExerciseInstructionData _data;
-  int _currentStep = 0; // 0 = setup, 1 = how-to
+  int _currentStep = 0;
 
   // Animation
   late final AnimationController _fadeController;
@@ -42,8 +36,8 @@ class _ExerciseInstructionScreenState extends State<ExerciseInstructionScreen>
     // Force dark status bar
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
-        statusBarBrightness: Brightness.dark,
-        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.light,
+        statusBarIconBrightness: Brightness.dark,
       ),
     );
 
@@ -57,7 +51,7 @@ class _ExerciseInstructionScreenState extends State<ExerciseInstructionScreen>
       parent: _fadeController,
       curve: Curves.easeInOut,
     );
-    _fadeController.value = 1.0; // start fully visible
+    _fadeController.value = 1.0;
   }
 
 
@@ -70,7 +64,6 @@ class _ExerciseInstructionScreenState extends State<ExerciseInstructionScreen>
 
   void _onContinue() {
     if (_currentStep == 0) {
-      // Animate transition to step 1
       _fadeController.reverse().then((_) {
         if (!mounted) return;
         setState(() => _currentStep = 1);
@@ -92,25 +85,19 @@ class _ExerciseInstructionScreenState extends State<ExerciseInstructionScreen>
     }
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // Build
-  // ─────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewPadding.bottom;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F1520),
+      backgroundColor: Colors.white,
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
             const SizedBox(height: 8),
-            // ── Top bar ──────────────────────────────────────────────
             _buildTopBar(),
             const SizedBox(height: 16),
-
-            // ── Title + steps (animated) ─────────────────────────────
             Expanded(
               child: FadeTransition(
                 opacity: _fadeAnimation,
@@ -118,7 +105,6 @@ class _ExerciseInstructionScreenState extends State<ExerciseInstructionScreen>
               ),
             ),
 
-            // ── Continue button ──────────────────────────────────────
             Padding(
               padding: EdgeInsets.fromLTRB(24, 12, 24, bottomInset + 16),
               child: _buildContinueButton(),
@@ -129,9 +115,6 @@ class _ExerciseInstructionScreenState extends State<ExerciseInstructionScreen>
     );
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // Top Bar
-  // ─────────────────────────────────────────────────────────────
   Widget _buildTopBar() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -155,13 +138,12 @@ class _ExerciseInstructionScreenState extends State<ExerciseInstructionScreen>
                   borderRadius: BorderRadius.circular(4),
                   color: isActive
                       ? const Color(0xFF6B9FFF)
-                      : Colors.white.withValues(alpha: 0.2),
+                      : Colors.black12,
                 ),
               );
             }),
           ),
           const Spacer(),
-          // Balance the back button
           const SizedBox(width: 44),
         ],
       ),
@@ -173,7 +155,7 @@ class _ExerciseInstructionScreenState extends State<ExerciseInstructionScreen>
     required VoidCallback onPressed,
   }) {
     return Material(
-      color: const Color(0xA61B2546),
+      color: const Color(0xFFF3F4F6),
       shape: const CircleBorder(),
       child: InkWell(
         onTap: onPressed,
@@ -181,15 +163,12 @@ class _ExerciseInstructionScreenState extends State<ExerciseInstructionScreen>
         child: SizedBox(
           width: 44,
           height: 44,
-          child: Icon(icon, color: Colors.white70, size: 20),
+          child: Icon(icon, color: Colors.black87, size: 20),
         ),
       ),
     );
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // Instruction Content
-  // ─────────────────────────────────────────────────────────────
   Widget _buildInstructionContent() {
     final title = _currentStep == 0 ? _data.setupTitle : _data.howToTitle;
     final steps = _currentStep == 0 ? _data.setupSteps : _data.howToSteps;
@@ -206,7 +185,7 @@ class _ExerciseInstructionScreenState extends State<ExerciseInstructionScreen>
               title,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                color: Colors.white,
+                color: Colors.black87,
                 fontSize: 26,
                 fontWeight: FontWeight.w700,
                 letterSpacing: -0.3,
@@ -220,7 +199,7 @@ class _ExerciseInstructionScreenState extends State<ExerciseInstructionScreen>
                   : 'How to do ${widget.exerciseType.displayName}',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.5),
+                color: Colors.black54,
                 fontSize: 15,
                 fontWeight: FontWeight.w500,
               ),
@@ -248,7 +227,7 @@ class _ExerciseInstructionScreenState extends State<ExerciseInstructionScreen>
             height: 28,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: const Color(0xFF6B9FFF).withValues(alpha: 0.15),
+              color: const Color(0xFF6B9FFF).withValues(alpha: 0.1),
               border: Border.all(
                 color: const Color(0xFF6B9FFF).withValues(alpha: 0.3),
                 width: 1,
@@ -258,7 +237,7 @@ class _ExerciseInstructionScreenState extends State<ExerciseInstructionScreen>
             child: Text(
               '$number',
               style: const TextStyle(
-                color: Color(0xFF8DB8FF),
+                color: const Color(0xFF6B9FFF),
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
               ),
@@ -272,7 +251,7 @@ class _ExerciseInstructionScreenState extends State<ExerciseInstructionScreen>
               child: Text(
                 text,
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.85),
+                  color: Colors.black87,
                   fontSize: 16,
                   fontWeight: FontWeight.w400,
                   height: 1.4,
@@ -285,9 +264,6 @@ class _ExerciseInstructionScreenState extends State<ExerciseInstructionScreen>
     );
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // Continue Button
-  // ─────────────────────────────────────────────────────────────
   Widget _buildContinueButton() {
     return SizedBox(
       width: double.infinity,
