@@ -94,7 +94,7 @@ CREATE TABLE workouts (
     return await db.insert('workouts', session.toMap());
   }
 
-  Future<List<WorkoutSession>> getRecentWorkouts({int limit = 10}) async {
+  Future<List<WorkoutSession>> getRecentWorkouts({int limit = 100}) async {
     final db = await instance.database;
     final maps = await db.query(
       'workouts',

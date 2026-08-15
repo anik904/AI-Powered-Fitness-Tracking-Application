@@ -60,7 +60,7 @@ class _RepCounterDisplayState extends State<RepCounterDisplay>
     final isTime = unit == 'sec' || unit == 'seconds';
     final isFixedReps =
         (unit == 'reps' || unit == 'rep') &&
-        (widget.totalReps != null && widget.totalReps! > 1);
+        (widget.totalReps != null && widget.totalReps! >= 1);
 
     Widget content;
     if (isTime && widget.totalTimeSeconds != null) {

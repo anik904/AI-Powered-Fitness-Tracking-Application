@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/provider/workout_provider.dart';
+import '../../../repository/model/exercise_type.dart';
 
 class RecentWorkoutSection extends ConsumerWidget {
   const RecentWorkoutSection({super.key});
@@ -15,24 +16,24 @@ class RecentWorkoutSection extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Recent Workout',
+            'Recent Workouts',
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 16),
           Container(
+            width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: AppTheme.cardColor,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppTheme.textSecondary.withOpacity(0.1)),
+              border: Border.all(
+                color: AppTheme.textSecondary.withValues(alpha: 0.1),
+              ),
             ),
             child: const Center(
               child: Text(
                 'No recent workouts',
-                style: TextStyle(
-                  color: AppTheme.textSecondary,
-                  fontSize: 14,
-                ),
+                style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
               ),
             ),
           ),
@@ -40,75 +41,99 @@ class RecentWorkoutSection extends ConsumerWidget {
       );
     }
 
-    final latestWorkout = workouts.first;
-    final now = DateTime.now();
-    String timeStr = "";
-    if (latestWorkout.timestamp.year == now.year && latestWorkout.timestamp.month == now.month && latestWorkout.timestamp.day == now.day) {
-      timeStr = "Today, ${latestWorkout.timestamp.hour.toString().padLeft(2, '0')}:${latestWorkout.timestamp.minute.toString().padLeft(2, '0')}";
-    } else {
-      timeStr = "${latestWorkout.timestamp.year}-${latestWorkout.timestamp.month.toString().padLeft(2, '0')}-${latestWorkout.timestamp.day.toString().padLeft(2, '0')}";
-    }
+    final recentWorkouts = workouts.take(5).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Recent Workout',
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
-        const SizedBox(height: 16),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppTheme.cardColor,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppTheme.textSecondary.withOpacity(0.1)),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppTheme.background,
-                  borderRadius: BorderRadius.circular(12),
+        Text('Recent Workouts', style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: 12),
+        ...recentWorkouts.map((workout) {
+          final timeStr = _formatTimestamp(workout.timestamp);
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8.0),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: AppTheme.cardColor,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: AppTheme.textSecondary.withValues(alpha: 0.1),
                 ),
-                child: const Icon(Icons.history, color: AppTheme.textSecondary),
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      latestWorkout.exerciseType.name.toUpperCase(),
-                      style: const TextStyle(
-                        color: AppTheme.textPrimary,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.background,
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${latestWorkout.reps} reps',
-                      style: const TextStyle(
-                        color: AppTheme.textSecondary,
-                        fontSize: 14,
-                      ),
+                    child: Icon(
+                      _getExerciseIcon(workout.exerciseType),
+                      color: AppTheme.accentColor,
+                      size: 20,
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          workout.exerciseType.displayName,
+                          style: const TextStyle(
+                            color: AppTheme.textPrimary,
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${workout.reps} reps',
+                          style: const TextStyle(
+                            color: AppTheme.textSecondary,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Text(
+                    timeStr,
+                    style: const TextStyle(
+                      color: AppTheme.textSecondary,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
               ),
-              Text(
-                timeStr,
-                style: const TextStyle(
-                  color: AppTheme.textSecondary,
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-        ),
+            ),
+          );
+        }),
       ],
     );
+  }
+
+  IconData _getExerciseIcon(ExerciseType type) {
+    switch (type) {
+      case ExerciseType.pushup:
+        return Icons.fitness_center;
+      case ExerciseType.squat:
+        return Icons.accessibility_new;
+      case ExerciseType.jumpingJack:
+        return Icons.directions_run;
+    }
+  }
+
+  String _formatTimestamp(DateTime timestamp) {
+    final now = DateTime.now();
+    if (timestamp.year == now.year &&
+        timestamp.month == now.month &&
+        timestamp.day == now.day) {
+      return "Today, ${timestamp.hour.toString().padLeft(2, '0')}:${timestamp.minute.toString().padLeft(2, '0')}";
+    } else {
+      return "${timestamp.year}-${timestamp.month.toString().padLeft(2, '0')}-${timestamp.day.toString().padLeft(2, '0')}";
+    }
   }
 }

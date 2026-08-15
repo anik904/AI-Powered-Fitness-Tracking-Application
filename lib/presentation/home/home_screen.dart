@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/shared_preferences_provider.dart';
+import '../../core/theme/app_theme.dart';
+import '../profile/profile_screeen.dart';
 import 'widgets/daily_activity.dart';
 import 'widgets/daily_motivation_section.dart';
 import 'widgets/quick_start_section.dart';
 import 'widgets/recent_workout_section.dart';
-import 'widgets/home_header.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -17,21 +18,47 @@ class HomeScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
-      body: SafeArea(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        title: Text(
+          'Hi, $userName',
+          style: Theme.of(context).textTheme.headlineMedium,
+        ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16.0),
+            child: GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ProfileScreen()),
+                );
+              },
+              child: const CircleAvatar(
+                radius: 20,
+                backgroundColor: AppTheme.cardColor,
+                child: Icon(Icons.person, color: AppTheme.textSecondary),
+              ),
+            ),
+          ),
+        ],
+      ),
+      body: const SafeArea(
+        top: false,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
+          padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              HomeHeader(userName: userName),
-              const SizedBox(height: 24),
-              const DailyActivity(),
-              const SizedBox(height: 24),
-              const DailyMotivationSection(),
-              const SizedBox(height: 24),
-              const QuickStartSection(),
-              const SizedBox(height: 24),
-              const RecentWorkoutSection(),
+              DailyActivity(),
+              SizedBox(height: 18),
+              DailyMotivationSection(),
+              SizedBox(height: 18),
+              QuickStartSection(),
+              SizedBox(height: 18),
+              RecentWorkoutSection(),
             ],
           ),
         ),
@@ -39,3 +66,4 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 }
+

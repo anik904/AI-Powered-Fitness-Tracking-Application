@@ -71,7 +71,7 @@ class _ExerciseInstructionScreenState extends State<ExerciseInstructionScreen>
       });
     } else {
       // Navigate to exercise screen
-      Navigator.push<void>(
+      Navigator.pushReplacement<void, void>(
         context,
         MaterialPageRoute(
           builder: (_) => ExerciseScreen(
@@ -79,9 +79,7 @@ class _ExerciseInstructionScreenState extends State<ExerciseInstructionScreen>
             sessionOption: widget.sessionOption,
           ),
         ),
-      ).then((_) {
-        if (mounted) Navigator.pop(context);
-      });
+      );
     }
   }
 

@@ -1,5 +1,5 @@
-// import 'package:camera/camera.dart';
 import 'package:ai_fitness_tracker/core/provider/exercise_provider.dart';
+import 'package:ai_fitness_tracker/core/provider/exercise_goal_provider.dart';
 import 'package:ai_fitness_tracker/presentation/exercise/exercise_camera.dart';
 import 'package:ai_fitness_tracker/presentation/exercise/widgets/exercise_info_sheet.dart';
 import 'package:ai_fitness_tracker/presentation/exercise/widgets/congratulations_bottom_sheet.dart';
@@ -61,9 +61,31 @@ class _ExerciseScreenState extends ConsumerState<ExerciseScreen> {
     );
     Future.microtask(() {
       if (!mounted) return;
+      final goals = ref.read(exerciseGoalProvider);
+      final goal = goals.firstWhere(
+        (g) => g.cardData.routeType == widget.exerciseType,
+        orElse: () => ExerciseGoal(
+          cardData: ExerciseCardData(
+            title: widget.exerciseType.displayName,
+            badgeColor: Colors.blue,
+            iconBg: Colors.blue,
+            icon: Icons.fitness_center,
+            routeType: widget.exerciseType,
+          ),
+          target: widget.sessionOption.reps,
+          unit: widget.sessionOption.unit,
+          matchOption: widget.sessionOption,
+        ),
+      );
+      final effectiveOption = WorkoutMatchOption(
+        reps: goal.target > 0 ? goal.target : widget.sessionOption.reps,
+        minutes: widget.sessionOption.minutes,
+        unit: goal.unit.isNotEmpty ? goal.unit : widget.sessionOption.unit,
+      );
+
       ref
           .read(exerciseProvider.notifier)
-          .initialize(widget.exerciseType, sessionOption: widget.sessionOption);
+          .initialize(widget.exerciseType, sessionOption: effectiveOption);
       if (mounted) setState(() => _providerInitialized = true);
     });
   }
@@ -139,7 +161,7 @@ class _ExerciseScreenState extends ConsumerState<ExerciseScreen> {
     final isReps = unit == 'reps' || unit == 'rep';
     final totalReps = isTime
         ? null
-        : (isReps && (state.sessionOption?.reps != 1)
+        : (isReps && state.sessionOption?.reps != null && state.sessionOption!.reps > 0
               ? state.sessionOption?.reps
               : null);
     final totalTimeSeconds = isTime ? state.sessionOption?.reps : null;
@@ -236,7 +258,7 @@ class _ExerciseScreenState extends ConsumerState<ExerciseScreen> {
       decoration: BoxDecoration(
         color: const Color(0xE61F2B4A),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withOpacity(0.14)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -321,7 +343,7 @@ class _ExerciseScreenState extends ConsumerState<ExerciseScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: const Color(0xFF262939).withOpacity(0.88),
+          color: const Color(0xFF262939).withValues(alpha: 0.88),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Text(
@@ -346,7 +368,9 @@ class _ExerciseScreenState extends ConsumerState<ExerciseScreen> {
 
     showCongratulationsBottomSheet(
       context: context,
-      onContinue: () => Navigator.pop(context),
+      onFinish: () {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      },
     );
   }
 }

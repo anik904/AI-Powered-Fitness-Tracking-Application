@@ -112,9 +112,16 @@ class ExerciseGoalNotifier extends Notifier<List<ExerciseGoal>> {
     for (int i = 0; i < goals.length; i++) {
       final goalData = await db.getGoal(goals[i].cardData.routeType.name);
       if (goalData != null) {
+        final target = goalData['target'] as int;
+        final unit = (goalData['unit'] as String?) ?? 'Reps';
         goals[i] = goals[i].copyWith(
-          target: goalData['target'],
-          unit: goalData['unit'],
+          target: target,
+          unit: unit,
+          matchOption: WorkoutMatchOption(
+            reps: target,
+            minutes: 0,
+            unit: unit,
+          ),
         );
       }
     }
@@ -123,21 +130,19 @@ class ExerciseGoalNotifier extends Notifier<List<ExerciseGoal>> {
 
   void updateGoal(int index, {int? target, String? unit, WorkoutMatchOption? matchOption}) {
     final oldGoal = state[index];
-    ExerciseGoal newGoal;
+    final newTarget = target ?? oldGoal.target;
+    final newUnit = unit ?? oldGoal.unit;
+    final newOption = matchOption ?? WorkoutMatchOption(
+      reps: newTarget,
+      minutes: 0,
+      unit: newUnit,
+    );
 
-    if (oldGoal.cardData.routeType == ExerciseType.squat) {
-      newGoal = oldGoal.copyWith(
-        target: target,
-        unit: 'Reps',
-        matchOption: matchOption ?? WorkoutMatchOption(reps: (target ?? oldGoal.target), minutes: 0, unit: 'Reps'),
-      );
-    } else {
-      newGoal = oldGoal.copyWith(
-        target: target,
-        unit: unit,
-        matchOption: matchOption,
-      );
-    }
+    final newGoal = oldGoal.copyWith(
+      target: newTarget,
+      unit: newUnit,
+      matchOption: newOption,
+    );
 
     state = [
       for (int i = 0; i < state.length; i++)

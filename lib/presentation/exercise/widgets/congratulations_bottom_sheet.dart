@@ -3,23 +3,32 @@ import 'package:flutter/material.dart';
 
 Future<void> showCongratulationsBottomSheet({
   required BuildContext context,
-  required VoidCallback onContinue,
+  VoidCallback? onFinish,
 }) async {
   await showModalBottomSheet(
     context: context,
     isDismissible: false,
     enableDrag: false,
+    isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    builder: (context) => CongratulationsBottomSheet(onContinue: onContinue),
+    builder: (sheetContext) => CongratulationsBottomSheet(
+      onFinish: () {
+        if (onFinish != null) {
+          onFinish();
+        } else {
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        }
+      },
+    ),
   );
 }
 
 class CongratulationsBottomSheet extends StatelessWidget {
-  final VoidCallback onContinue;
+  final VoidCallback onFinish;
 
   const CongratulationsBottomSheet({
     super.key,
-    required this.onContinue,
+    required this.onFinish,
   });
 
   @override
@@ -31,10 +40,10 @@ class CongratulationsBottomSheet extends StatelessWidget {
         decoration: BoxDecoration(
           color: const Color(0xE6161B2E),
           borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-          border: Border.all(color: Colors.white.withOpacity(0.1)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.4),
+              color: Colors.black.withValues(alpha: 0.4),
               blurRadius: 24,
               offset: const Offset(0, -8),
             ),
@@ -48,14 +57,14 @@ class CongratulationsBottomSheet extends StatelessWidget {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.all(16),
-              child: const Icon(Icons.celebration, size: 40),
+              child: const Icon(Icons.celebration, size: 40, color: Colors.white),
             ),
             const SizedBox(height: 16),
 
@@ -73,14 +82,12 @@ class CongratulationsBottomSheet extends StatelessWidget {
               'You completed the workout successfully.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: Colors.white.withOpacity(0.8),
+                color: Colors.white.withValues(alpha: 0.8),
                 fontSize: 14,
                 fontWeight: FontWeight.w400,
               ),
             ),
             const SizedBox(height: 28),
-
-            // Continue Button
             SizedBox(
               width: double.infinity,
               height: 50,
@@ -94,14 +101,14 @@ class CongratulationsBottomSheet extends StatelessWidget {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF4F46E5).withOpacity(0.3),
+                      color: const Color(0xFF4F46E5).withValues(alpha: 0.3),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                     ),
                   ],
                 ),
                 child: ElevatedButton(
-                  onPressed: onContinue,
+                  onPressed: onFinish,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.transparent,
                     shadowColor: Colors.transparent,
@@ -110,7 +117,7 @@ class CongratulationsBottomSheet extends StatelessWidget {
                     ),
                   ),
                   child: const Text(
-                    'CONTINUE',
+                    'Got It',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 18,
@@ -128,3 +135,4 @@ class CongratulationsBottomSheet extends StatelessWidget {
     );
   }
 }
+

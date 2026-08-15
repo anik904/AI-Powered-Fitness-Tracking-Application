@@ -19,37 +19,42 @@ class DailyActivity extends ConsumerWidget {
     if (goals.isNotEmpty) {
       double totalPercentageSum = 0;
 
-      for (var goal in goals) {
+      for (int i = 0; i < goals.length; i++) {
+        final goal = goals[i];
         // Calculate progress for this goal
-        final typeWorkouts = todayWorkouts.where((w) => w.exerciseType == goal.cardData.routeType);
-        
+        final typeWorkouts = todayWorkouts.where(
+          (w) => w.exerciseType == goal.cardData.routeType,
+        );
+
         int completedAmount = typeWorkouts.fold(0, (sum, w) => sum + w.reps);
 
-        double percentage = goal.target > 0 ? completedAmount / goal.target : 0.0;
+        double percentage = goal.target > 0
+            ? completedAmount / goal.target
+            : 0.0;
         if (percentage > 1.0) percentage = 1.0;
         totalPercentageSum += percentage;
 
         statsList.add(
           _ActivityStat(
-            icon: goal.cardData.icon, 
+            icon: goal.cardData.icon,
             title: goal.cardData.title,
-            value: '$completedAmount/${goal.target}'
-          )
+            value: '$completedAmount/${goal.target}',
+          ),
         );
-        statsList.add(const SizedBox(height: 12));
+        if (i < goals.length - 1) {
+          statsList.add(const SizedBox(height: 12));
+        }
       }
 
-      totalProgressPercentage = ((totalPercentageSum / goals.length) * 100).toInt();
+      totalProgressPercentage = ((totalPercentageSum / goals.length) * 100)
+          .toInt();
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Daily Activity',
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
-        const SizedBox(height: 16),
+        Text('Daily Activity', style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: 12),
         CustomCard(
           color: AppTheme.accentColor.withOpacity(0.4),
           padding: const EdgeInsets.all(20),
@@ -65,9 +70,12 @@ class DailyActivity extends ConsumerWidget {
                   children: [
                     CircularProgressIndicator(
                       value: totalProgressPercentage / 100,
-                      strokeWidth: 8,
+                      strokeWidth: 9,
+                      strokeCap: StrokeCap.round,
                       backgroundColor: AppTheme.background,
-                      valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.accentColor),
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        AppTheme.accentColor,
+                      ),
                     ),
                     Center(
                       child: Column(
@@ -100,9 +108,14 @@ class DailyActivity extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: statsList.isNotEmpty ? statsList : [
-                    const Text("No goals set", style: TextStyle(color: AppTheme.textSecondary))
-                  ],
+                  children: statsList.isNotEmpty
+                      ? statsList
+                      : [
+                          const Text(
+                            "No goals set",
+                            style: TextStyle(color: AppTheme.textSecondary),
+                          ),
+                        ],
                 ),
               ),
             ],
@@ -133,12 +146,20 @@ class _ActivityStat extends StatelessWidget {
         Expanded(
           child: Text(
             title,
-            style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+              color: AppTheme.textPrimary,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
         Text(
           value,
-          style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14, fontWeight: FontWeight.bold),
+          style: const TextStyle(
+            color: AppTheme.textSecondary,
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ],
     );
