@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/provider/exercise_goal_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../repository/model/exercise_type.dart';
+import '../../../repository/model/exercise_workout_data.dart';
 import '../../../repository/model/workout_match_option.dart';
 import '../../exercise/exercise_instruction_screen.dart';
 
@@ -42,6 +43,9 @@ class QuickStartSection extends ConsumerWidget {
     WidgetRef ref,
     ExerciseType exerciseType,
   ) {
+    final fallbackOption =
+        exerciseMatchOptions[exerciseType]?.first ??
+        const WorkoutMatchOption(reps: 20, minutes: 0, unit: 'Reps');
     final goals = ref.read(exerciseGoalProvider);
     final goal = goals.firstWhere(
       (g) => g.cardData.routeType == exerciseType,
@@ -53,13 +57,9 @@ class QuickStartSection extends ConsumerWidget {
           icon: Icons.fitness_center,
           routeType: exerciseType,
         ),
-        target: 20,
-        unit: 'Reps',
-        matchOption: const WorkoutMatchOption(
-          reps: 20,
-          minutes: 0,
-          unit: 'Reps',
-        ),
+        target: fallbackOption.reps,
+        unit: fallbackOption.unit,
+        matchOption: fallbackOption,
       ),
     );
 
