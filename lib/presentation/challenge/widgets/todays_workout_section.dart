@@ -1,51 +1,91 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/provider/analytics_provider.dart';
+import '../../../core/provider/exercise_goal_provider.dart';
+import '../../../core/provider/workout_provider.dart';
+import '../../../repository/model/exercise_type.dart';
+import '../../../widgets/exercise_icon_widget.dart';
+import '../../exercise/exercise_instruction_screen.dart';
 
-class TodaysWorkoutSection extends StatelessWidget {
+class TodaysWorkoutSection extends ConsumerWidget {
   const TodaysWorkoutSection({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final analytics = ref.watch(analyticsDataProvider);
+    final goals = ref.watch(exerciseGoalProvider);
+    final todayWorkouts = ref.watch(challengeTodayWorkoutProvider);
+    final currentDayIndex = analytics.challengeCurrentDayIndex;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Today\'s Workout (Day 12)',
-              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            FilledButton(
-              onPressed: () {},
-              style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
-                minimumSize: const Size(0, 36),
-              ),
-              child: const Text('Start'),
-            ),
-          ],
+        Text(
+          'Today\'s Workout (Day $currentDayIndex)',
+          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
-        _buildExerciseItem(context, 'Push-ups', 10, 10, true),
-        _buildExerciseItem(context, 'Squats', 15, 5, false),
-        _buildExerciseItem(context, 'Jumping Jacks', 20, 0, false),
+        if (goals.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16.0),
+            child: Text('No workout goals configured.'),
+          )
+        else
+          ...goals.map((goal) {
+            final typeWorkouts = todayWorkouts.where(
+              (w) => w.exerciseType == goal.cardData.routeType,
+            );
+            final completed = typeWorkouts.fold(0, (sum, w) => sum + w.reps);
+            final target = goal.target;
+            final isDone = completed >= target;
+
+            return InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ExerciseInstructionScreen(
+                      exerciseType: goal.cardData.routeType,
+                      sessionOption: goal.matchOption,
+                    ),
+                  ),
+                );
+              },
+              child: _buildExerciseItem(
+                context,
+                goal.cardData.routeType,
+                goal.cardData.title,
+                target,
+                completed,
+                isDone,
+              ),
+            );
+          }),
       ],
     );
   }
 
-  Widget _buildExerciseItem(BuildContext context, String name, int target, int completed, bool isDone) {
+  Widget _buildExerciseItem(
+    BuildContext context,
+    ExerciseType exerciseType,
+    String name,
+    int target,
+    int completed,
+    bool isDone,
+  ) {
     final theme = Theme.of(context);
-    final progress = target > 0 ? completed / target : 0.0;
+    final progress = target > 0 ? (completed / target).clamp(0.0, 1.0) : 0.0;
     
     return Container(
       margin: const EdgeInsets.only(bottom: 8.0),
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDone ? theme.colorScheme.primary.withOpacity(0.3) : Colors.grey.withOpacity(0.15),
+          color: isDone ? theme.colorScheme.primary.withValues(alpha: 0.3) : Colors.grey.withValues(alpha: 0.15),
         ),
       ),
       child: Row(
@@ -53,41 +93,32 @@ class TodaysWorkoutSection extends StatelessWidget {
           Container(
             width: 48,
             height: 48,
+            padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
               color: isDone ? theme.colorScheme.primaryContainer : theme.colorScheme.surface,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(
-              isDone ? Icons.check_circle : Icons.fitness_center,
-              color: isDone ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
+            child: ExerciseIconWidget(
+              exerciseType: exerciseType,
+              size: 32,
             ),
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
                   name,
                   style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 4),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      '$completed / $target reps',
-                      style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                    ),
-                    if (!isDone)
-                      Text(
-                        '${(progress * 100).toInt()}%',
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          color: theme.colorScheme.primary,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                  ],
+                Text(
+                  '$completed / $target reps',
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
                 if (!isDone) ...[
                   const SizedBox(height: 8),
@@ -100,6 +131,36 @@ class TodaysWorkoutSection extends StatelessWidget {
                 ],
               ],
             ),
+          ),
+          const SizedBox(width: 12),
+          if (isDone)
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.check_circle, size: 16, color: theme.colorScheme.primary),
+                const SizedBox(width: 4),
+                Text(
+                  'Done',
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            )
+          else
+            Text(
+              '${(progress * 100).toInt()}%',
+              style: theme.textTheme.titleSmall?.copyWith(
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          const SizedBox(width: 8),
+          Icon(
+            Icons.arrow_forward_ios,
+            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+            size: 14,
           ),
         ],
       ),

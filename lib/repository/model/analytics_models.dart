@@ -40,9 +40,13 @@ class AnalyticsData {
   final int totalWorkouts;
   final int totalReps;
   final int currentStreak;
+  final int challengeStreak;
+  final bool isChallengeActive;
+  final DateTime? challengeStartDate;
   final int challengeCompletedDays;
   final int challengeRemainingDays;
   final int challengePercentage;
+  final int challengeCurrentDayIndex;
   final List<ChartBarData> chartBars;
   final List<ExerciseDistributionData> distribution;
   final List<WorkoutSession> recentWorkouts;
@@ -52,9 +56,13 @@ class AnalyticsData {
     required this.totalWorkouts,
     required this.totalReps,
     required this.currentStreak,
+    required this.challengeStreak,
+    required this.isChallengeActive,
+    this.challengeStartDate,
     required this.challengeCompletedDays,
     required this.challengeRemainingDays,
     required this.challengePercentage,
+    required this.challengeCurrentDayIndex,
     required this.chartBars,
     required this.distribution,
     required this.recentWorkouts,

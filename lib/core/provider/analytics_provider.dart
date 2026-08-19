@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../repository/model/analytics_models.dart';
 import '../../repository/services/analytics/analytics_calculator.dart';
 import 'workout_provider.dart';
+import 'challenge_provider.dart';
 
 export '../../repository/model/analytics_models.dart';
 
@@ -22,9 +23,12 @@ final analyticsFilterProvider =
 final analyticsDataProvider = Provider<AnalyticsData>((ref) {
   final allWorkouts = ref.watch(workoutProvider);
   final filter = ref.watch(analyticsFilterProvider);
+  final challengeState = ref.watch(challengeProvider);
 
   return AnalyticsCalculator.compute(
     allWorkouts: allWorkouts,
     filter: filter,
+    isChallengeActive: challengeState.isStarted,
+    challengeStartDate: challengeState.startDate,
   );
 });

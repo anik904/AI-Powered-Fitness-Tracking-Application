@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'exercise_screen.dart';
 
+import 'package:ai_fitness_tracker/widgets/exercise_icon_widget.dart';
+
 class ExerciseInstructionScreen extends StatefulWidget {
   final ExerciseType exerciseType;
   final WorkoutMatchOption sessionOption;
@@ -178,6 +180,18 @@ class _ExerciseInstructionScreenState extends State<ExerciseInstructionScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF3F4F6),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: ExerciseIconWidget(
+                exerciseType: widget.exerciseType,
+                size: 72,
+              ),
+            ),
+            const SizedBox(height: 20),
             // Title
             Text(
               title,
@@ -235,7 +249,7 @@ class _ExerciseInstructionScreenState extends State<ExerciseInstructionScreen>
             child: Text(
               '$number',
               style: const TextStyle(
-                color: const Color(0xFF6B9FFF),
+                color: Color(0xFF6B9FFF),
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
               ),

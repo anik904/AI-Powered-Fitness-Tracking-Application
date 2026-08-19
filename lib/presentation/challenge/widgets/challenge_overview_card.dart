@@ -1,16 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../widgets/custom_card.dart';
+import '../../../core/provider/analytics_provider.dart';
 
-class ChallengeOverviewCard extends StatelessWidget {
+class ChallengeOverviewCard extends ConsumerWidget {
   const ChallengeOverviewCard({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final analytics = ref.watch(analyticsDataProvider);
+    final completedDays = analytics.challengeCompletedDays;
+    final remainingDays = analytics.challengeRemainingDays;
+    final percentage = analytics.challengePercentage;
+    final challengeStreak = analytics.challengeStreak;
+
+    final currentDayIndex = analytics.challengeCurrentDayIndex;
 
     return CustomCard(
-      color: theme.colorScheme.secondaryContainer.withOpacity(0.4),
+      color: theme.colorScheme.secondaryContainer.withValues(alpha: 0.4),
       padding: const EdgeInsets.all(20.0),
       margin: EdgeInsets.zero,
       child: Column(
@@ -20,14 +29,14 @@ class ChallengeOverviewCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Day 12 of 30',
+                'Day $currentDayIndex of 30',
                 style: theme.textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: theme.colorScheme.onSecondaryContainer,
                 ),
               ),
               Text(
-                '40%',
+                '$percentage%',
                 style: theme.textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: theme.colorScheme.primary,
@@ -37,7 +46,7 @@ class ChallengeOverviewCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           LinearProgressIndicator(
-            value: 0.4,
+            value: (completedDays / 30).clamp(0.0, 1.0),
             backgroundColor: theme.colorScheme.surfaceContainerHighest,
             color: theme.colorScheme.primary,
             minHeight: 8,
@@ -47,19 +56,19 @@ class ChallengeOverviewCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildStatColumn(context, 'Completed', '11 Days'),
+              _buildStatColumn(context, 'Completed', '$completedDays Days'),
               Container(
                 width: 1,
                 height: 40,
                 color: theme.colorScheme.outlineVariant,
               ),
-              _buildStatColumn(context, 'Remaining', '19 Days'),
+              _buildStatColumn(context, 'Remaining', '$remainingDays Days'),
               Container(
                 width: 1,
                 height: 40,
                 color: theme.colorScheme.outlineVariant,
               ),
-              _buildStatColumn(context, 'Streak', '🔥 5'),
+              _buildStatColumn(context, 'Streak', '🔥 $challengeStreak'),
             ],
           ),
         ],

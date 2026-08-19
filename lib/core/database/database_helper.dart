@@ -119,6 +119,21 @@ CREATE TABLE workouts (
     return maps.map((map) => WorkoutSession.fromMap(map)).toList();
   }
 
+  Future<void> clearWorkouts({DateTime? since}) async {
+    final db = await instance.database;
+    if (since != null) {
+      await db.delete('workouts', where: 'timestamp >= ?', whereArgs: [since.toIso8601String()]);
+    } else {
+      await db.delete('workouts');
+    }
+  }
+
+  Future<void> clearAllData() async {
+    final db = await instance.database;
+    await db.delete('goals');
+    await db.delete('workouts');
+  }
+
   Future close() async {
     final db = await instance.database;
     db.close();

@@ -1,5 +1,6 @@
 import 'package:ai_fitness_tracker/core/provider/exercise_provider.dart';
 import 'package:ai_fitness_tracker/repository/model/exercise_type.dart';
+import 'package:ai_fitness_tracker/widgets/exercise_icon_widget.dart';
 import 'package:flutter/material.dart';
 
 
@@ -17,13 +18,22 @@ Future<void> showExerciseInfoSheet(BuildContext context, ExerciseType exerciseTy
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            exerciseType.displayName,
-            style: const TextStyle(
-              color: Colors.black87,
-              fontWeight: FontWeight.w700,
-              fontSize: 22,
-            ),
+          Row(
+            children: [
+              ExerciseIconWidget(
+                exerciseType: exerciseType,
+                size: 32,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                exerciseType.displayName,
+                style: const TextStyle(
+                  color: Colors.black87,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 22,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
           // Removed targetReps display

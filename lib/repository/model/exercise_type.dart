@@ -22,4 +22,27 @@ extension ExerciseTypeExtension on ExerciseType {
         return 'Place your phone 2m away facing you. Stand in frame fully. Do jumping jacks with arms overhead and feet apart.';
     }
   }
+
+  String get assetPath {
+    switch (this) {
+      case ExerciseType.pushup:
+        return 'assets/pushup-icon.svg';
+      case ExerciseType.squat:
+        return 'assets/squats-icon.svg';
+      case ExerciseType.jumpingJack:
+        return 'assets/jumpingjack-icon.svg';
+    }
+  }
+
+  static ExerciseType fromString(String name) {
+    final lower = name.toLowerCase();
+    if (lower.contains('push')) {
+      return ExerciseType.pushup;
+    } else if (lower.contains('squat')) {
+      return ExerciseType.squat;
+    } else if (lower.contains('jump') || lower.contains('jack')) {
+      return ExerciseType.jumpingJack;
+    }
+    return ExerciseType.pushup;
+  }
 }

@@ -31,6 +31,8 @@ class AnalyticsCalculator {
   static AnalyticsData compute({
     required List<WorkoutSession> allWorkouts,
     required AnalyticsTimeFilter filter,
+    required bool isChallengeActive,
+    DateTime? challengeStartDate,
     DateTime? now,
   }) {
     final currentTime = now ?? DateTime.now();
@@ -46,8 +48,26 @@ class AnalyticsCalculator {
 
     final uniqueWorkoutDates = _getUniqueDates(allWorkouts);
     final currentStreak = calculateStreak(uniqueWorkoutDates, todayStart);
-    final (challengeCompleted, challengeRemaining, challengePercentage) =
-        calculateChallengeProgress(uniqueWorkoutDates, todayStart);
+    final (challengeCompleted, challengeRemaining, challengePercentage, challengeStreak) =
+        calculateChallengeProgress(
+      allWorkouts: allWorkouts,
+      isChallengeActive: isChallengeActive,
+      challengeStartDate: challengeStartDate,
+      todayStart: todayStart,
+    );
+    
+    int challengeCurrentDayIndex = 1;
+    if (isChallengeActive && challengeStartDate != null) {
+      final start = DateTime(
+        challengeStartDate.year,
+        challengeStartDate.month,
+        challengeStartDate.day,
+      );
+      final calendarDaysPassed = todayStart.difference(start).inDays;
+      final maxAllowedDay = (calendarDaysPassed + 1).clamp(1, 30);
+      final targetDay = (challengeCompleted + 1).clamp(1, 30);
+      challengeCurrentDayIndex = targetDay > maxAllowedDay ? maxAllowedDay : targetDay;
+    }
 
     final chartBars = calculateChartBars(
       allWorkouts: allWorkouts,
@@ -67,9 +87,13 @@ class AnalyticsCalculator {
       totalWorkouts: totalWorkouts,
       totalReps: totalReps,
       currentStreak: currentStreak,
+      challengeStreak: challengeStreak,
+      isChallengeActive: isChallengeActive,
+      challengeStartDate: challengeStartDate,
       challengeCompletedDays: challengeCompleted,
       challengeRemainingDays: challengeRemaining,
       challengePercentage: challengePercentage,
+      challengeCurrentDayIndex: challengeCurrentDayIndex,
       chartBars: chartBars,
       distribution: distribution,
       recentWorkouts: recentWorkouts,
@@ -127,18 +151,26 @@ class AnalyticsCalculator {
     return streak;
   }
 
-  static (int completed, int remaining, int percentage)
-      calculateChallengeProgress(Set<String> uniqueDates, DateTime todayStart) {
-    int completedDays = 0;
-    for (int i = 0; i < 30; i++) {
-      final day = todayStart.subtract(Duration(days: i));
-      if (uniqueDates.contains(_formatDateKey(day))) {
-        completedDays++;
-      }
+  static (int completed, int remaining, int percentage, int challengeStreak)
+      calculateChallengeProgress({
+    required List<WorkoutSession> allWorkouts,
+    required bool isChallengeActive,
+    DateTime? challengeStartDate,
+    required DateTime todayStart,
+  }) {
+    if (!isChallengeActive || challengeStartDate == null) {
+      return (0, 30, 0, 0);
     }
+
+    final challengeWorkouts = allWorkouts.where((w) => !w.timestamp.isBefore(challengeStartDate)).toList();
+    final uniqueDates = _getUniqueDates(challengeWorkouts);
+    final challengeStreak = calculateStreak(uniqueDates, todayStart);
+
+    final completedDays = uniqueDates.length.clamp(0, 30);
     final remainingDays = (30 - completedDays).clamp(0, 30);
     final percentage = ((completedDays / 30) * 100).round();
-    return (completedDays, remainingDays, percentage);
+    
+    return (completedDays, remainingDays, percentage, challengeStreak);
   }
 
   static List<ChartBarData> calculateChartBars({

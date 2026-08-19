@@ -9,6 +9,7 @@ import 'package:ai_fitness_tracker/repository/model/exercise_type.dart';
 import 'package:ai_fitness_tracker/repository/model/workout_match_option.dart';
 import 'package:ai_fitness_tracker/repository/model/workout_session.dart';
 import 'package:ai_fitness_tracker/core/provider/workout_provider.dart';
+import 'package:ai_fitness_tracker/widgets/exercise_icon_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -263,10 +264,9 @@ class _ExerciseScreenState extends ConsumerState<ExerciseScreen> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
-            Icons.fitness_center_rounded,
-            color: Colors.white70,
-            size: 14,
+          ExerciseIconWidget(
+            exerciseType: widget.exerciseType,
+            size: 20,
           ),
           const SizedBox(width: 8),
           Text(

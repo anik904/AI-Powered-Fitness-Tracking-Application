@@ -5,19 +5,10 @@ import '../../../widgets/custom_card.dart';
 import '../../../core/provider/analytics_provider.dart';
 import '../../../repository/model/exercise_type.dart';
 
+import '../../../widgets/exercise_icon_widget.dart';
+
 class RecentActivity extends ConsumerWidget {
   const RecentActivity({super.key});
-
-  IconData _getExerciseIcon(ExerciseType type) {
-    switch (type) {
-      case ExerciseType.pushup:
-        return Icons.fitness_center;
-      case ExerciseType.squat:
-        return Icons.accessibility_new;
-      case ExerciseType.jumpingJack:
-        return Icons.directions_run;
-    }
-  }
 
   String _formatDate(DateTime timestamp) {
     final now = DateTime.now();
@@ -124,17 +115,16 @@ class RecentActivity extends ConsumerWidget {
     return Row(
       children: [
         Container(
-          padding: const EdgeInsets.all(10),
+          padding: const EdgeInsets.all(6),
           decoration: BoxDecoration(
             color: Theme.of(
               context,
             ).colorScheme.primaryContainer.withValues(alpha: 0.4),
             shape: BoxShape.circle,
           ),
-          child: Icon(
-            _getExerciseIcon(exerciseType),
-            color: Theme.of(context).colorScheme.primary,
-            size: 20,
+          child: ExerciseIconWidget(
+            exerciseType: exerciseType,
+            size: 24,
           ),
         ),
         const SizedBox(width: 16),

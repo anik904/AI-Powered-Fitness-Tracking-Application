@@ -4,6 +4,8 @@ import '../../../core/theme/app_theme.dart';
 import '../../../widgets/custom_card.dart';
 import '../../../core/provider/exercise_goal_provider.dart';
 import '../../../core/provider/workout_provider.dart';
+import '../../../repository/model/exercise_type.dart';
+import '../../../widgets/exercise_icon_widget.dart';
 
 class DailyActivity extends ConsumerWidget {
   const DailyActivity({super.key});
@@ -36,7 +38,7 @@ class DailyActivity extends ConsumerWidget {
 
         statsList.add(
           _ActivityStat(
-            icon: goal.cardData.icon,
+            exerciseType: goal.cardData.routeType,
             title: goal.cardData.title,
             value: '$completedAmount/${goal.target}',
           ),
@@ -56,7 +58,7 @@ class DailyActivity extends ConsumerWidget {
         Text('Daily Activity', style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 12),
         CustomCard(
-          color: AppTheme.accentColor.withOpacity(0.4),
+          color: AppTheme.accentColor.withValues(alpha: 0.4),
           padding: const EdgeInsets.all(20),
           margin: EdgeInsets.zero,
           child: Row(
@@ -127,12 +129,12 @@ class DailyActivity extends ConsumerWidget {
 }
 
 class _ActivityStat extends StatelessWidget {
-  final IconData icon;
+  final ExerciseType exerciseType;
   final String title;
   final String value;
 
   const _ActivityStat({
-    required this.icon,
+    required this.exerciseType,
     required this.title,
     required this.value,
   });
@@ -141,7 +143,7 @@ class _ActivityStat extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, color: AppTheme.accentColor, size: 18),
+        ExerciseIconWidget(exerciseType: exerciseType, size: 20),
         const SizedBox(width: 8),
         Expanded(
           child: Text(

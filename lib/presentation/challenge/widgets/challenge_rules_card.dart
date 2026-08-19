@@ -31,13 +31,11 @@ class ChallengeRulesCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          _buildRuleItem(context, 'One workout per day'),
-          _buildRuleItem(context, 'Progress saved automatically'),
-          _buildRuleItem(
-            context,
-            'Future days unlock after completing today\'s workout',
-          ),
-          _buildRuleItem(context, 'Missed days can still be completed later'),
+          _buildRuleItem(context, 'Complete at least one exercise per day'),
+          _buildRuleItem(context, 'Workout reps and progress are saved automatically'),
+          _buildRuleItem(context, 'Your streak increases with every consecutive active day'),
+          _buildRuleItem(context, 'Milestones unlock on Days 1, 7, 14, 21, and 30'),
+          _buildRuleItem(context, 'You can reset or restart the challenge at any time'),
         ],
       ),
     );

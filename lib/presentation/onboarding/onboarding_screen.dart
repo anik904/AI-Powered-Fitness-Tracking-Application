@@ -7,6 +7,8 @@ import '../../core/providers/shared_preferences_provider.dart';
 import '../../repository/model/exercise_type.dart';
 import '../../app.dart';
 
+import '../../widgets/exercise_icon_widget.dart';
+
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
 
@@ -32,6 +34,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   void _nextPage() {
+    if (_currentPage == 2 && _nameController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter your name to continue.')),
+      );
+      return;
+    }
+
     if (_currentPage < 4) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),
@@ -233,18 +242,21 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           ),
           const SizedBox(height: 24),
           _buildGoalInputField(
+            exerciseType: ExerciseType.pushup,
             title: 'Push-ups',
             controller: _pushupGoalController,
             hintText: '20',
           ),
           const SizedBox(height: 12),
           _buildGoalInputField(
+            exerciseType: ExerciseType.squat,
             title: 'Squats',
             controller: _squatGoalController,
             hintText: '20',
           ),
           const SizedBox(height: 12),
           _buildGoalInputField(
+            exerciseType: ExerciseType.jumpingJack,
             title: 'Jumping Jacks',
             controller: _jumpingJackGoalController,
             hintText: '50',
@@ -255,12 +267,25 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Widget _buildGoalInputField({
+    required ExerciseType exerciseType,
     required String title,
     required TextEditingController controller,
     required String hintText,
   }) {
     return Row(
       children: [
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: AppTheme.cardColor,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: ExerciseIconWidget(
+            exerciseType: exerciseType,
+            size: 24,
+          ),
+        ),
+        const SizedBox(width: 12),
         Expanded(
           child: Text(
             title,

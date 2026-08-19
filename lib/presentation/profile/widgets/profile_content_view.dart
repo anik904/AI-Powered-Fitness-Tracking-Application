@@ -8,6 +8,9 @@ import '../../../repository/model/exercise_type.dart';
 import '../auth/login_screen.dart';
 import 'profile_section_header.dart';
 import 'settings_list_tile.dart';
+import '../../../core/database/database_helper.dart';
+import '../../../widgets/exercise_icon_widget.dart';
+import '../../onboarding/onboarding_screen.dart';
 
 
 class ProfileContentView extends ConsumerStatefulWidget {
@@ -121,6 +124,48 @@ class _ProfileContentViewState extends ConsumerState<ProfileContentView> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('$title goal updated.')),
     );
+  }
+
+  Future<void> _handleDeleteAllData(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Delete All Data'),
+          content: const Text(
+            'Are you sure you want to delete all your data? This action cannot be undone and will reset your progress, goals, and challenge state.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true && mounted) {
+      // Clear Database
+      await DatabaseHelper.instance.clearAllData();
+      
+      // Clear SharedPreferences
+      final prefs = ref.read(sharedPreferencesProvider);
+      await prefs.clear();
+
+      if (!mounted) return;
+
+      // Navigate to onboarding screen
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+        (route) => false,
+      );
+    }
   }
 
   @override
@@ -260,7 +305,10 @@ class _ProfileContentViewState extends ConsumerState<ProfileContentView> {
             child: Column(
               children: [
                 SettingsListTile(
-                  icon: Icons.fitness_center,
+                  leading: const ExerciseIconWidget(
+                    exerciseType: ExerciseType.pushup,
+                    size: 24,
+                  ),
                   title: 'Daily Push-up Goal',
                   subtitle: '$pushupGoal Reps',
                   onTap: () {
@@ -274,7 +322,10 @@ class _ProfileContentViewState extends ConsumerState<ProfileContentView> {
                   },
                 ),
                 SettingsListTile(
-                  icon: Icons.accessibility_new,
+                  leading: const ExerciseIconWidget(
+                    exerciseType: ExerciseType.squat,
+                    size: 24,
+                  ),
                   title: 'Daily Squat Goal',
                   subtitle: '$squatGoal Reps',
                   onTap: () {
@@ -288,7 +339,10 @@ class _ProfileContentViewState extends ConsumerState<ProfileContentView> {
                   },
                 ),
                 SettingsListTile(
-                  icon: Icons.sports_gymnastics,
+                  leading: const ExerciseIconWidget(
+                    exerciseType: ExerciseType.jumpingJack,
+                    size: 24,
+                  ),
                   title: 'Daily Jumping Jack Goal',
                   subtitle: '$jumpingJackGoal Reps',
                   onTap: () {
@@ -324,28 +378,12 @@ class _ProfileContentViewState extends ConsumerState<ProfileContentView> {
           const ProfileSectionHeader(title: 'Data Management'),
           CustomCard(
             padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Column(
-              children: [
-                SettingsListTile(
-                  icon: Icons.cloud_download,
-                  title: 'Sync Data',
-                  onTap: () {},
-                ),
-                SettingsListTile(
-                  icon: Icons.delete_sweep,
-                  title: 'Delete All Local Data',
-                  textColor: Colors.redAccent,
-                  iconColor: Colors.redAccent,
-                  onTap: () {},
-                ),
-                SettingsListTile(
-                  icon: Icons.delete_forever,
-                  title: 'Delete Account',
-                  textColor: Colors.redAccent,
-                  iconColor: Colors.redAccent,
-                  onTap: () {},
-                ),
-              ],
+            child: SettingsListTile(
+              icon: Icons.delete_sweep,
+              title: 'Delete All Data',
+              textColor: Colors.redAccent,
+              iconColor: Colors.redAccent,
+              onTap: () => _handleDeleteAllData(context),
             ),
           ),
 

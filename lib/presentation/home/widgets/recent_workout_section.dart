@@ -4,6 +4,8 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/provider/workout_provider.dart';
 import '../../../repository/model/exercise_type.dart';
 
+import '../../../widgets/exercise_icon_widget.dart';
+
 class RecentWorkoutSection extends ConsumerWidget {
   const RecentWorkoutSection({super.key});
 
@@ -69,10 +71,9 @@ class RecentWorkoutSection extends ConsumerWidget {
                       color: AppTheme.background,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Icon(
-                      _getExerciseIcon(workout.exerciseType),
-                      color: AppTheme.accentColor,
-                      size: 20,
+                    child: ExerciseIconWidget(
+                      exerciseType: workout.exerciseType,
+                      size: 24,
                     ),
                   ),
                   const SizedBox(width: 14),
@@ -113,17 +114,6 @@ class RecentWorkoutSection extends ConsumerWidget {
         }),
       ],
     );
-  }
-
-  IconData _getExerciseIcon(ExerciseType type) {
-    switch (type) {
-      case ExerciseType.pushup:
-        return Icons.fitness_center;
-      case ExerciseType.squat:
-        return Icons.accessibility_new;
-      case ExerciseType.jumpingJack:
-        return Icons.directions_run;
-    }
   }
 
   String _formatTimestamp(DateTime timestamp) {

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 class SettingsListTile extends StatelessWidget {
-  final IconData icon;
+  final IconData? icon;
+  final Widget? leading;
   final String title;
   final String? subtitle;
   final VoidCallback onTap;
@@ -11,7 +12,8 @@ class SettingsListTile extends StatelessWidget {
 
   const SettingsListTile({
     super.key,
-    required this.icon,
+    this.icon,
+    this.leading,
     required this.title,
     required this.onTap,
     this.subtitle,
@@ -22,8 +24,13 @@ class SettingsListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Widget? effectiveLeading = leading;
+    if (effectiveLeading == null && icon != null) {
+      effectiveLeading = Icon(icon!, color: iconColor ?? Theme.of(context).colorScheme.primary);
+    }
+
     return ListTile(
-      leading: Icon(icon, color: iconColor ?? Theme.of(context).colorScheme.primary),
+      leading: effectiveLeading,
       title: Text(
         title,
         style: TextStyle(color: textColor, fontWeight: FontWeight.w500),

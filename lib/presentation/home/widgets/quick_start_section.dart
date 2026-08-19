@@ -7,6 +7,8 @@ import '../../../repository/model/exercise_workout_data.dart';
 import '../../../repository/model/workout_match_option.dart';
 import '../../exercise/exercise_instruction_screen.dart';
 
+import '../../../widgets/exercise_icon_widget.dart';
+
 class QuickStartSection extends ConsumerWidget {
   const QuickStartSection({super.key});
 
@@ -18,20 +20,17 @@ class QuickStartSection extends ConsumerWidget {
         Text('Quick Start', style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 12),
         _buildExerciseCard(
-          title: 'Push-ups',
-          icon: Icons.fitness_center,
+          exerciseType: ExerciseType.pushup,
           onTap: () => _startWorkout(context, ref, ExerciseType.pushup),
         ),
         const SizedBox(height: 8),
         _buildExerciseCard(
-          title: 'Squats',
-          icon: Icons.accessibility_new,
+          exerciseType: ExerciseType.squat,
           onTap: () => _startWorkout(context, ref, ExerciseType.squat),
         ),
         const SizedBox(height: 8),
         _buildExerciseCard(
-          title: 'Jumping Jacks',
-          icon: Icons.directions_run,
+          exerciseType: ExerciseType.jumpingJack,
           onTap: () => _startWorkout(context, ref, ExerciseType.jumpingJack),
         ),
       ],
@@ -81,8 +80,7 @@ class QuickStartSection extends ConsumerWidget {
   }
 
   Widget _buildExerciseCard({
-    required String title,
-    required IconData icon,
+    required ExerciseType exerciseType,
     required VoidCallback onTap,
   }) {
     return InkWell(
@@ -105,12 +103,12 @@ class QuickStartSection extends ConsumerWidget {
                 color: AppTheme.accentColor.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: AppTheme.accentColor, size: 20),
+              child: ExerciseIconWidget(exerciseType: exerciseType, size: 34),
             ),
             const SizedBox(width: 14),
             Expanded(
               child: Text(
-                title,
+                exerciseType.displayName,
                 style: const TextStyle(
                   color: AppTheme.textPrimary,
                   fontSize: 15,
