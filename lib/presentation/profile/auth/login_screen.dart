@@ -1,6 +1,7 @@
 import 'package:ai_fitness_tracker/widgets/custom_button.dart';
 import 'package:ai_fitness_tracker/widgets/custom_text_field.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'registration_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -13,12 +14,51 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  bool _isLoading = false;
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _login() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill all fields')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      if (mounted) {
+        Navigator.pop(context, true); // Return true indicating successful login
+      }
+    } on FirebaseAuthException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message ?? 'Login failed')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -69,13 +109,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     const SizedBox(height: 24),
-                    CustomButton(
-                      text: 'Sign In',
-                      onPressed: () {
-                        // Sign In Action
-                        Navigator.pop(context, true); // Return true indicating successful login
-                      },
-                    ),
+                    _isLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : CustomButton(
+                            text: 'Sign In',
+                            onPressed: _login,
+                          ),
                     const SizedBox(height: 24),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
