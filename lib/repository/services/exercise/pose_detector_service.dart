@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:ui';
 import 'package:camera/camera.dart';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
@@ -43,7 +44,9 @@ class PoseDetectorService {
         metadata: InputImageMetadata(
           size: Size(image.width.toDouble(), image.height.toDouble()),
           rotation: rotation,
-          format: InputImageFormat.nv21,
+          format: Platform.isAndroid 
+              ? InputImageFormat.nv21 
+              : InputImageFormat.bgra8888,
           bytesPerRow: plane.bytesPerRow,
         ),
       );

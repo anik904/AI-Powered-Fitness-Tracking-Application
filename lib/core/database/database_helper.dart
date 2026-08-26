@@ -23,14 +23,16 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _createDB,
+      onUpgrade: _upgradeDB,
     );
   }
 
   Future _createDB(Database db, int version) async {
     const idType = 'INTEGER PRIMARY KEY AUTOINCREMENT';
     const textType = 'TEXT NOT NULL';
+    const textNullable = 'TEXT';
     const integerType = 'INTEGER NOT NULL';
 
     await db.execute('''
@@ -47,9 +49,20 @@ CREATE TABLE workouts (
   id $idType,
   exerciseType $textType,
   reps $integerType,
-  timestamp $textType
+  timestamp $textType,
+  clientId $textNullable
 )
 ''');
+  }
+
+  Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      try {
+        await db.execute('ALTER TABLE workouts ADD COLUMN clientId TEXT');
+      } catch (_) {
+        // Column may already exist in some dev states
+      }
+    }
   }
 
   // Goals
@@ -88,10 +101,25 @@ CREATE TABLE workouts (
     }
   }
 
+  Future<List<Map<String, dynamic>>> getAllGoals() async {
+    final db = await instance.database;
+    return await db.query('goals');
+  }
+
   // Workouts
   Future<int> insertWorkout(WorkoutSession session) async {
     final db = await instance.database;
     return await db.insert('workouts', session.toMap());
+  }
+
+  Future<List<WorkoutSession>> getAllWorkouts() async {
+    final db = await instance.database;
+    final maps = await db.query(
+      'workouts',
+      orderBy: 'timestamp DESC',
+    );
+
+    return maps.map((map) => WorkoutSession.fromMap(map)).toList();
   }
 
   Future<List<WorkoutSession>> getRecentWorkouts({int limit = 100}) async {
@@ -114,9 +142,30 @@ CREATE TABLE workouts (
       'workouts',
       where: 'timestamp >= ?',
       whereArgs: [todayStart],
+      orderBy: 'timestamp DESC',
     );
 
     return maps.map((map) => WorkoutSession.fromMap(map)).toList();
+  }
+
+  Future<void> bulkUpsertWorkouts(List<WorkoutSession> workouts) async {
+    final db = await instance.database;
+    final batch = db.batch();
+
+    for (final workout in workouts) {
+      // Check existing by clientId or (exerciseType + timestamp)
+      final existing = await db.query(
+        'workouts',
+        where: 'clientId = ?',
+        whereArgs: [workout.clientId],
+      );
+
+      if (existing.isEmpty) {
+        batch.insert('workouts', workout.toMap());
+      }
+    }
+
+    await batch.commit(noResult: true);
   }
 
   Future<void> clearWorkouts({DateTime? since}) async {

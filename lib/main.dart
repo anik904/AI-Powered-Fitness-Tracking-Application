@@ -7,6 +7,7 @@ import 'presentation/onboarding/onboarding_screen.dart';
 import 'app.dart';
 
 import 'package:firebase_core/firebase_core.dart';
+import 'core/network/api_constants.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,6 +15,7 @@ void main() async {
   await Firebase.initializeApp();
   
   final sharedPreferences = await SharedPreferences.getInstance();
+  await ApiConstants.initialize(sharedPreferences);
   
   runApp(
     ProviderScope(

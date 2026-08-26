@@ -1,39 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/provider/auth_provider.dart';
 import 'widgets/profile_content_view.dart';
 
-class ProfileScreen extends StatefulWidget {
+class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authProvider);
 
-class _ProfileScreenState extends State<ProfileScreen> {
-  // For demonstration, defaulting to guest state
-  bool _isSignedIn = false;
-
-  void _handleLoginSuccess() {
-    setState(() {
-      _isSignedIn = true;
-    });
-  }
-
-  void _handleSignOut() {
-    setState(() {
-      _isSignedIn = false;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profile'),
       ),
       body: ProfileContentView(
-        isSignedIn: _isSignedIn,
-        onSignOut: _handleSignOut,
-        onLoginSuccess: _handleLoginSuccess,
+        isSignedIn: authState.isSignedIn,
+        onSignOut: () {
+          ref.read(authProvider.notifier).signOut();
+        },
+        onLoginSuccess: () {
+          // Handled reactively by authState
+        },
       ),
     );
   }

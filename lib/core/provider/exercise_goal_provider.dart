@@ -4,8 +4,9 @@ import 'package:ai_fitness_tracker/repository/model/workout_match_option.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../repository/services/sync/sync_service.dart';
 import '../database/database_helper.dart';
-
+import 'auth_provider.dart';
 
 class ExerciseCardData {
   final String title;
@@ -22,7 +23,6 @@ class ExerciseCardData {
     required this.routeType,
   });
 }
-
 
 class ExerciseGoal {
   final ExerciseCardData cardData;
@@ -49,6 +49,8 @@ class ExerciseGoal {
 }
 
 class ExerciseGoalNotifier extends Notifier<List<ExerciseGoal>> {
+  final SyncService _syncService = SyncService();
+
   @override
   List<ExerciseGoal> build() {
     final initial = [
@@ -82,7 +84,6 @@ class ExerciseGoalNotifier extends Notifier<List<ExerciseGoal>> {
           orElse: () => exerciseMatchOptions[ExerciseType.squat]!.first,
         ),
       ),
-
       ExerciseGoal(
         cardData: const ExerciseCardData(
           title: 'Jumping Jacks',
@@ -100,12 +101,12 @@ class ExerciseGoalNotifier extends Notifier<List<ExerciseGoal>> {
       ),
     ];
     
-    Future.microtask(() => _loadFromDb());
+    Future.microtask(() => reloadFromDb());
 
     return initial;
   }
 
-  Future<void> _loadFromDb() async {
+  Future<void> reloadFromDb() async {
     final db = DatabaseHelper.instance;
     final goals = List<ExerciseGoal>.from(state);
     
@@ -149,12 +150,23 @@ class ExerciseGoalNotifier extends Notifier<List<ExerciseGoal>> {
         if (i == index) newGoal else state[i],
     ];
 
-    // Save to DB
+    // 1. Save to DB locally
     DatabaseHelper.instance.saveGoal(
       newGoal.cardData.routeType.name,
       newGoal.target,
       newGoal.unit,
     );
+
+    // 2. Non-blocking background sync
+    final user = ref.read(authProvider).user;
+    if (user != null) {
+      _syncService.syncGoalInBackground(
+        firebaseUid: user.uid,
+        exerciseType: newGoal.cardData.routeType.name,
+        target: newGoal.target,
+        unit: newGoal.unit,
+      );
+    }
   }
 
   void updateGoalByType(ExerciseType type, {required int target, String unit = 'Reps'}) {

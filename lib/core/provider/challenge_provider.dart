@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../repository/services/sync/sync_service.dart';
 import '../providers/shared_preferences_provider.dart';
+import 'auth_provider.dart';
 import 'workout_provider.dart';
 
 class ChallengeState {
@@ -15,6 +17,7 @@ class ChallengeState {
 class ChallengeNotifier extends Notifier<ChallengeState> {
   static const _challengeStartedKey = 'challenge_started';
   static const _challengeStartDateKey = 'challenge_start_date';
+  final SyncService _syncService = SyncService();
 
   @override
   ChallengeState build() {
@@ -24,6 +27,18 @@ class ChallengeNotifier extends Notifier<ChallengeState> {
     final startDate = startDateString != null ? DateTime.parse(startDateString) : null;
     
     return ChallengeState(
+      isStarted: isStarted,
+      startDate: startDate,
+    );
+  }
+
+  void reloadFromPrefs() {
+    final prefs = ref.read(sharedPreferencesProvider);
+    final isStarted = prefs.getBool(_challengeStartedKey) ?? false;
+    final startDateString = prefs.getString(_challengeStartDateKey);
+    final startDate = startDateString != null ? DateTime.parse(startDateString) : null;
+    
+    state = ChallengeState(
       isStarted: isStarted,
       startDate: startDate,
     );
@@ -39,6 +54,12 @@ class ChallengeNotifier extends Notifier<ChallengeState> {
       isStarted: true,
       startDate: now,
     );
+
+    // Background sync
+    final user = ref.read(authProvider).user;
+    if (user != null) {
+      _syncService.syncChallengeStartInBackground(user.uid);
+    }
   }
 
   Future<void> restartChallenge() async {
@@ -58,6 +79,12 @@ class ChallengeNotifier extends Notifier<ChallengeState> {
       isStarted: false,
       startDate: null,
     );
+
+    // Background sync
+    final user = ref.read(authProvider).user;
+    if (user != null) {
+      _syncService.syncChallengeResetInBackground(user.uid);
+    }
   }
 }
 
