@@ -6,6 +6,7 @@ import 'core/providers/shared_preferences_provider.dart';
 import 'presentation/onboarding/welcome_screen.dart';
 import 'app.dart';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'core/network/api_constants.dart';
 
@@ -16,6 +17,16 @@ void main() async {
   
   final sharedPreferences = await SharedPreferences.getInstance();
   await ApiConstants.initialize(sharedPreferences);
+
+  final hasCompletedOnboarding = sharedPreferences.getBool('has_completed_onboarding') ?? false;
+  final isGuestMode = sharedPreferences.getBool('is_guest_mode') ?? false;
+
+  // If app is not onboarded or user selected guest mode, clear any lingering Keychain session
+  if (!hasCompletedOnboarding || isGuestMode) {
+    if (FirebaseAuth.instance.currentUser != null) {
+      await FirebaseAuth.instance.signOut();
+    }
+  }
   
   runApp(
     ProviderScope(

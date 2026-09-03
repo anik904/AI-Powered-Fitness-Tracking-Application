@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app.dart';
+import '../../core/provider/auth_provider.dart';
 import '../../core/providers/shared_preferences_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../profile/auth/login_screen.dart';
@@ -9,12 +10,17 @@ import 'onboarding_screen.dart';
 class WelcomeScreen extends ConsumerWidget {
   const WelcomeScreen({super.key});
 
-  Future<void> _skipToApp(BuildContext context, WidgetRef ref) async {
+  Future<void> _continueAsGuest(BuildContext context, WidgetRef ref) async {
     final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setBool('has_completed_onboarding', true);
-    if (prefs.getString('user_name') == null || prefs.getString('user_name')!.isEmpty) {
-      await prefs.setString('user_name', 'User');
-    }
+    await prefs.setBool('is_guest_mode', true);
+    await prefs.remove('user_email');
+    await prefs.remove('onboarding_name');
+    await prefs.setString('user_name', 'Guest User');
+
+    // Ensure any previous Firebase auth session is cleared
+    await ref.read(authProvider.notifier).signOut();
+
     if (context.mounted) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const AppScreen()),
@@ -29,6 +35,7 @@ class WelcomeScreen extends ConsumerWidget {
     if (result == true && context.mounted) {
       final prefs = ref.read(sharedPreferencesProvider);
       await prefs.setBool('has_completed_onboarding', true);
+      await prefs.setBool('is_guest_mode', false);
       if (context.mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const AppScreen()),
@@ -50,7 +57,7 @@ class WelcomeScreen extends ConsumerWidget {
               Align(
                 alignment: Alignment.topRight,
                 child: TextButton(
-                  onPressed: () => _skipToApp(context, ref),
+                  onPressed: () => _continueAsGuest(context, ref),
                   child: Text(
                     'Skip',
                     style: TextStyle(
@@ -146,7 +153,24 @@ class WelcomeScreen extends ConsumerWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
+
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: TextButton.icon(
+                  onPressed: () => _continueAsGuest(context, ref),
+                  icon: const Icon(Icons.person_outline, size: 20),
+                  label: const Text(
+                    'Continue as Guest',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                  ),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppTheme.textSecondary,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
             ],
           ),
         ),

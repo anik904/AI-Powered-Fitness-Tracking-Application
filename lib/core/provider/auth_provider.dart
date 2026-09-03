@@ -47,10 +47,32 @@ class AuthNotifier extends Notifier<UserAuthState> {
   UserAuthState build() {
     _syncService = SyncService();
 
-    final currentUser = FirebaseAuth.instance.currentUser;
+    final prefs = ref.read(sharedPreferencesProvider);
+    final hasCompletedOnboarding = prefs.getBool('has_completed_onboarding') ?? false;
+    final isGuest = prefs.getBool('is_guest_mode') ?? false;
+
+    // If guest mode is active or onboarding not yet completed, clear lingering Keychain session
+    if ((!hasCompletedOnboarding || isGuest) && FirebaseAuth.instance.currentUser != null) {
+      FirebaseAuth.instance.signOut();
+    }
+
+    final currentUser = (!hasCompletedOnboarding || isGuest) ? null : FirebaseAuth.instance.currentUser;
+
+    if (currentUser != null) {
+      Future.microtask(() => _onUserAuthenticated(currentUser));
+    }
 
     _authSubscription?.cancel();
     _authSubscription = FirebaseAuth.instance.authStateChanges().listen((user) {
+      final currentPrefs = ref.read(sharedPreferencesProvider);
+      final currentHasCompleted = currentPrefs.getBool('has_completed_onboarding') ?? false;
+      final currentIsGuest = currentPrefs.getBool('is_guest_mode') ?? false;
+
+      if (!currentHasCompleted || currentIsGuest) {
+        state = const UserAuthState();
+        return;
+      }
+
       state = state.copyWith(user: user, clearUser: user == null);
       if (user != null) {
         _onUserAuthenticated(user);
@@ -64,26 +86,57 @@ class AuthNotifier extends Notifier<UserAuthState> {
     return UserAuthState(user: currentUser);
   }
 
+  Future<void> refreshUserData() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      await _onUserAuthenticated(user);
+    }
+  }
+
   Future<void> _onUserAuthenticated(User user) async {
     // 1. Save user profile info for display
     try {
       final prefs = ref.read(sharedPreferencesProvider);
+      await prefs.setBool('is_guest_mode', false);
+
+      // Fetch user profile from backend to get saved display name if available
+      String? backendName;
+      try {
+        final backendUser = await _syncService.getBackendUser(user.uid);
+        if (backendUser != null && backendUser.displayName != null && backendUser.displayName!.trim().isNotEmpty) {
+          backendName = backendUser.displayName!.trim();
+        }
+      } catch (_) {}
+
       final onboardingName = prefs.getString('onboarding_name');
       final existingName = prefs.getString('user_name');
       
-      if (onboardingName != null && onboardingName.trim().isNotEmpty) {
-        await prefs.setString('user_name', onboardingName.trim());
-      } else if (existingName == null || existingName.trim().isEmpty || existingName == 'User' || existingName == 'Guest User') {
-        final fallbackName = user.displayName ?? user.email?.split('@').first ?? 'User';
-        await prefs.setString('user_name', fallbackName);
+      final String resolvedName;
+      if (backendName != null && backendName.isNotEmpty) {
+        resolvedName = backendName;
+      } else if (user.displayName != null && user.displayName!.trim().isNotEmpty) {
+        resolvedName = user.displayName!.trim();
+      } else if (onboardingName != null && onboardingName.trim().isNotEmpty && onboardingName != 'Guest User' && onboardingName != 'User') {
+        resolvedName = onboardingName.trim();
+      } else if (existingName != null && existingName.trim().isNotEmpty && existingName != 'User' && existingName != 'Guest User') {
+        resolvedName = existingName.trim();
+      } else {
+        resolvedName = user.email?.split('@').first ?? 'User';
       }
+
+      await prefs.setString('user_name', resolvedName);
       await prefs.setString('user_email', user.email ?? '');
-    } catch (_) {}
+
+      // Ensure state is updated so listeners react immediately
+      state = state.copyWith(user: user);
+    } catch (e) {
+      developer.log('Error saving user profile info: $e', name: 'AuthNotifier');
+    }
 
     // 2. Register on backend in background
     try {
       final prefs = ref.read(sharedPreferencesProvider);
-      final displayName = prefs.getString('onboarding_name') ?? prefs.getString('user_name') ?? user.displayName;
+      final displayName = prefs.getString('user_name') ?? user.displayName;
 
       await _syncService.registerUserOnBackend(
         firebaseUid: user.uid,
@@ -118,11 +171,20 @@ class AuthNotifier extends Notifier<UserAuthState> {
   Future<bool> signIn({required String email, required String password}) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
+      // Clear guest mode first so stream listener does not reject the sign-in event
+      final prefs = ref.read(sharedPreferencesProvider);
+      await prefs.setBool('is_guest_mode', false);
+      await prefs.setBool('has_completed_onboarding', true);
+
       final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
-      state = state.copyWith(user: credential.user, isLoading: false);
+      final user = credential.user;
+      if (user != null) {
+        await _onUserAuthenticated(user);
+      }
+      state = state.copyWith(user: user, isLoading: false);
       return true;
     } on FirebaseAuthException catch (e) {
       state = state.copyWith(isLoading: false, error: e.message ?? 'Login failed');
@@ -136,6 +198,11 @@ class AuthNotifier extends Notifier<UserAuthState> {
   Future<bool> register({required String email, required String password, String? displayName}) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
+      // Clear guest mode first
+      final prefs = ref.read(sharedPreferencesProvider);
+      await prefs.setBool('is_guest_mode', false);
+      await prefs.setBool('has_completed_onboarding', true);
+
       final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: email,
         password: password,
@@ -143,7 +210,11 @@ class AuthNotifier extends Notifier<UserAuthState> {
       if (displayName != null && displayName.isNotEmpty) {
         await credential.user?.updateDisplayName(displayName);
       }
-      state = state.copyWith(user: credential.user, isLoading: false);
+      final user = credential.user;
+      if (user != null) {
+        await _onUserAuthenticated(user);
+      }
+      state = state.copyWith(user: user, isLoading: false);
       return true;
     } on FirebaseAuthException catch (e) {
       state = state.copyWith(isLoading: false, error: e.message ?? 'Registration failed');
@@ -197,10 +268,12 @@ class AuthNotifier extends Notifier<UserAuthState> {
       // Clear local database to prevent data leaking between user accounts
       await DatabaseHelper.instance.clearAllData();
 
-      // Clear user-specific preferences
+      // Clear user-specific preferences and switch to guest mode
       final prefs = ref.read(sharedPreferencesProvider);
-      await prefs.remove('user_name');
+      await prefs.setBool('is_guest_mode', true);
       await prefs.remove('user_email');
+      await prefs.remove('onboarding_name');
+      await prefs.setString('user_name', 'Guest User');
       await prefs.remove('challenge_started');
       await prefs.remove('challenge_start_date');
 

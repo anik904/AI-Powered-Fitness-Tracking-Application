@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/provider/auth_provider.dart';
+import '../../core/provider/challenge_provider.dart';
+import '../../core/provider/exercise_goal_provider.dart';
+import '../../core/provider/sync_provider.dart';
+import '../../core/provider/workout_provider.dart';
 import '../../core/providers/shared_preferences_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../profile/profile_screeen.dart';
@@ -13,8 +18,27 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authProvider);
     final prefs = ref.watch(sharedPreferencesProvider);
-    final userName = prefs.getString('user_name') ?? 'User';
+    final savedName = prefs.getString('user_name');
+    final onboardingName = prefs.getString('onboarding_name');
+
+    final String userName;
+    if (authState.isSignedIn) {
+      if (savedName != null && savedName.trim().isNotEmpty && savedName != 'Guest User' && savedName != 'User') {
+        userName = savedName.trim();
+      } else if (onboardingName != null && onboardingName.trim().isNotEmpty && onboardingName != 'Guest User' && onboardingName != 'User') {
+        userName = onboardingName.trim();
+      } else {
+        userName = authState.displayName;
+      }
+    } else {
+      if (savedName != null && savedName.trim().isNotEmpty && savedName != 'User') {
+        userName = savedName.trim();
+      } else {
+        userName = 'Guest User';
+      }
+    }
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
@@ -45,21 +69,36 @@ class HomeScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: const SafeArea(
+      body: SafeArea(
         top: false,
-        child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              DailyActivity(),
-              SizedBox(height: 18),
-              DailyMotivationSection(),
-              SizedBox(height: 18),
-              QuickStartSection(),
-              SizedBox(height: 18),
-              RecentWorkoutSection(),
-            ],
+        child: RefreshIndicator(
+          onRefresh: () async {
+            final auth = ref.read(authProvider);
+            if (auth.isSignedIn) {
+              await ref.read(authProvider.notifier).refreshUserData();
+              await ref.read(syncProvider.notifier).syncNow();
+            }
+            await Future.wait([
+              ref.read(workoutProvider.notifier).loadRecentWorkouts(),
+              ref.read(exerciseGoalProvider.notifier).reloadFromDb(),
+            ]);
+            ref.read(challengeProvider.notifier).reloadFromPrefs();
+          },
+          child: const SingleChildScrollView(
+            physics: AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                DailyActivity(),
+                SizedBox(height: 18),
+                DailyMotivationSection(),
+                SizedBox(height: 18),
+                QuickStartSection(),
+                SizedBox(height: 18),
+                RecentWorkoutSection(),
+              ],
+            ),
           ),
         ),
       ),

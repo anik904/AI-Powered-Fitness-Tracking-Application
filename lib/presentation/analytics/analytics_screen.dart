@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/provider/auth_provider.dart';
+import '../../core/provider/challenge_provider.dart';
+import '../../core/provider/sync_provider.dart';
 import '../../core/provider/workout_provider.dart';
 
 import 'widgets/analytics_header.dart';
@@ -20,7 +23,13 @@ class AnalyticsScreen extends ConsumerWidget {
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async {
+            final auth = ref.read(authProvider);
+            if (auth.isSignedIn) {
+              await ref.read(authProvider.notifier).refreshUserData();
+              await ref.read(syncProvider.notifier).syncNow();
+            }
             await ref.read(workoutProvider.notifier).loadRecentWorkouts();
+            ref.read(challengeProvider.notifier).reloadFromPrefs();
           },
           child: const CustomScrollView(
             physics: AlwaysScrollableScrollPhysics(),

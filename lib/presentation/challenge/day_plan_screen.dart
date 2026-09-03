@@ -34,11 +34,20 @@ class DayPlanScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text('Day $day', style: const TextStyle(fontWeight: FontWeight.bold)),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      body: RefreshIndicator(
+        onRefresh: () async {
+          await Future.wait([
+            ref.read(workoutProvider.notifier).loadRecentWorkouts(),
+            ref.read(exerciseGoalProvider.notifier).reloadFromDb(),
+          ]);
+          ref.read(challengeProvider.notifier).reloadFromPrefs();
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             Text(
               'Workout Plan',
               style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
@@ -83,6 +92,7 @@ class DayPlanScreen extends ConsumerWidget {
           ],
         ),
       ),
+    ),
     );
   }
 

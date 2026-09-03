@@ -3,8 +3,10 @@ import 'package:ai_fitness_tracker/widgets/custom_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/provider/auth_provider.dart';
+import '../../../core/provider/challenge_provider.dart';
 import '../../../core/provider/exercise_goal_provider.dart';
 import '../../../core/provider/sync_provider.dart';
+import '../../../core/provider/workout_provider.dart';
 import '../../../core/providers/shared_preferences_provider.dart';
 import '../../../repository/model/exercise_type.dart';
 import '../auth/login_screen.dart';
@@ -152,6 +154,9 @@ class _ProfileContentViewState extends ConsumerState<ProfileContentView> {
     );
 
     if (confirmed == true && mounted) {
+      // Sign out of Firebase Auth to ensure residual sessions don't linger
+      await ref.read(authProvider.notifier).signOut();
+
       // Clear Database
       await DatabaseHelper.instance.clearAllData();
       
@@ -229,17 +234,34 @@ class _ProfileContentViewState extends ConsumerState<ProfileContentView> {
 
     final onboardingName = prefs.getString('onboarding_name');
     final savedName = prefs.getString('user_name');
-    final userName = (onboardingName != null && onboardingName.trim().isNotEmpty)
-        ? onboardingName.trim()
-        : ((savedName != null && savedName.trim().isNotEmpty && savedName != 'User' && savedName != 'Guest User')
+    final userName = widget.isSignedIn
+        ? ((onboardingName != null && onboardingName.trim().isNotEmpty && onboardingName != 'Guest User')
+            ? onboardingName.trim()
+            : ((savedName != null && savedName.trim().isNotEmpty && savedName != 'User' && savedName != 'Guest User')
+                ? savedName.trim()
+                : (authState.displayName)))
+        : ((savedName != null && savedName.trim().isNotEmpty && savedName != 'User')
             ? savedName.trim()
-            : (authState.user != null ? authState.displayName : 'Guest User'));
+            : 'Guest User');
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+    return RefreshIndicator(
+      onRefresh: () async {
+        if (widget.isSignedIn) {
+          await ref.read(authProvider.notifier).refreshUserData();
+          await ref.read(syncProvider.notifier).syncNow();
+        }
+        await Future.wait([
+          ref.read(workoutProvider.notifier).loadRecentWorkouts(),
+          ref.read(exerciseGoalProvider.notifier).reloadFromDb(),
+        ]);
+        ref.read(challengeProvider.notifier).reloadFromPrefs();
+      },
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           // 1. Profile / Guest Card
           if (widget.isSignedIn)
             CustomCard(
@@ -293,7 +315,7 @@ class _ProfileContentViewState extends ConsumerState<ProfileContentView> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Guest User',
+                    userName,
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
                   const SizedBox(height: 8),
@@ -494,6 +516,7 @@ class _ProfileContentViewState extends ConsumerState<ProfileContentView> {
           ],
         ],
       ),
-    );
+    ),
+  );
   }
 }

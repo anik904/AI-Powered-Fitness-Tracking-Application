@@ -7,6 +7,7 @@ import '../../model/api/sync_models.dart';
 import '../../model/api/workout_api_model.dart';
 import '../../model/exercise_type.dart';
 import '../../model/workout_session.dart';
+import '../../model/api/user_api_model.dart';
 import '../api/auth_api_service.dart';
 import '../api/challenge_api_service.dart';
 import '../api/goal_api_service.dart';
@@ -282,6 +283,18 @@ class SyncService {
       developer.log('User registered on backend', name: 'SyncService');
     } catch (e) {
       developer.log('Backend user registration error: $e', name: 'SyncService');
+    }
+  }
+
+  /// Backend get user
+  Future<UserResponseModel?> getBackendUser(String firebaseUid) async {
+    try {
+      final user = await _authApi.getCurrentUser(firebaseUid);
+      developer.log('Backend user retrieved: ${user.email}, ${user.displayName}', name: 'SyncService');
+      return user;
+    } catch (e) {
+      developer.log('Backend get user error: $e', name: 'SyncService');
+      return null;
     }
   }
 

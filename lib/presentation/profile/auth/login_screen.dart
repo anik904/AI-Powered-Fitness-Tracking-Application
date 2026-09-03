@@ -3,6 +3,7 @@ import 'package:ai_fitness_tracker/widgets/custom_text_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/provider/auth_provider.dart';
+import '../../../core/providers/shared_preferences_provider.dart';
 import 'registration_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -196,6 +197,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 8),
+              Center(
+                child: TextButton(
+                  onPressed: () async {
+                    final prefs = ref.read(sharedPreferencesProvider);
+                    await prefs.setBool('is_guest_mode', true);
+                    await prefs.setBool('has_completed_onboarding', true);
+                    await prefs.remove('user_email');
+                    await prefs.remove('onboarding_name');
+                    await prefs.setString('user_name', 'Guest User');
+                    await ref.read(authProvider.notifier).signOut();
+                    if (context.mounted) {
+                      Navigator.pop(context, false);
+                    }
+                  },
+                  child: Text(
+                    'Continue as Guest',
+                    style: TextStyle(color: Colors.grey[600]),
+                  ),
+                ),
               ),
             ],
           ),

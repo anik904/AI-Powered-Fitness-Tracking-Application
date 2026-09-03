@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/provider/analytics_provider.dart';
+import '../../../core/provider/auth_provider.dart';
 import '../../../core/provider/challenge_provider.dart';
+import '../../../core/provider/sync_provider.dart';
+import '../../../core/provider/workout_provider.dart';
 import 'widgets/challenge_overview_card.dart';
 import 'widgets/challenge_rules_card.dart';
 import 'widgets/challenge_timeline_section.dart';
@@ -54,51 +57,63 @@ class ChallengeScreen extends ConsumerWidget {
           ],
         ],
       ),
-      body: isChallengeActive
-          ? SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16.0,
-                vertical: 8.0,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const ChallengeOverviewCard(),
-                  const SizedBox(height: 24),
-                  const ProgressMilestoneSection(),
-                  const SizedBox(height: 24),
-                  const TodaysWorkoutSection(),
-                  const SizedBox(height: 24),
-                  const ChallengeTimelineSection(),
-                  const SizedBox(height: 24),
-                  const ChallengeRulesCard(),
-                  const SizedBox(height: 24),
-                  Center(
-                    child: OutlinedButton.icon(
-                      onPressed: () => _showResetDialog(context, ref),
-                      icon: const Icon(Icons.restart_alt, color: Colors.redAccent, size: 18),
-                      label: const Text(
-                        'Reset 30-Day Challenge',
-                        style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: Colors.redAccent.withValues(alpha: 0.5)),
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          final auth = ref.read(authProvider);
+          if (auth.isSignedIn) {
+            await ref.read(authProvider.notifier).refreshUserData();
+            await ref.read(syncProvider.notifier).syncNow();
+          }
+          ref.read(challengeProvider.notifier).reloadFromPrefs();
+          await ref.read(workoutProvider.notifier).loadRecentWorkouts();
+        },
+        child: isChallengeActive
+            ? SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 8.0,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const ChallengeOverviewCard(),
+                    const SizedBox(height: 24),
+                    const ProgressMilestoneSection(),
+                    const SizedBox(height: 24),
+                    const TodaysWorkoutSection(),
+                    const SizedBox(height: 24),
+                    const ChallengeTimelineSection(),
+                    const SizedBox(height: 24),
+                    const ChallengeRulesCard(),
+                    const SizedBox(height: 24),
+                    Center(
+                      child: OutlinedButton.icon(
+                        onPressed: () => _showResetDialog(context, ref),
+                        icon: const Icon(Icons.restart_alt, color: Colors.redAccent, size: 18),
+                        label: const Text(
+                          'Reset 30-Day Challenge',
+                          style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: Colors.redAccent.withValues(alpha: 0.5)),
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 48),
-                ],
-              ),
-            )
-          : SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 24.0,
-                vertical: 32.0,
-              ),
+                    const SizedBox(height: 48),
+                  ],
+                ),
+              )
+            : SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24.0,
+                  vertical: 32.0,
+                ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -177,6 +192,7 @@ class ChallengeScreen extends ConsumerWidget {
                 ],
               ),
             ),
+      ),
     );
   }
 

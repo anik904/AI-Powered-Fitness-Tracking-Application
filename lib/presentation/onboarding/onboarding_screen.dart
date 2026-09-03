@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/provider/auth_provider.dart';
 import '../../core/provider/exercise_goal_provider.dart';
 import '../../core/providers/shared_preferences_provider.dart';
 import '../../repository/model/exercise_type.dart';
@@ -66,9 +67,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   Future<void> _skipToApp() async {
     final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setBool('has_completed_onboarding', true);
-    if (prefs.getString('user_name') == null || prefs.getString('user_name')!.isEmpty) {
-      await prefs.setString('user_name', 'User');
-    }
+    await prefs.setBool('is_guest_mode', true);
+    await prefs.remove('user_email');
+    await prefs.remove('onboarding_name');
+    await prefs.setString('user_name', 'Guest User');
+
+    // Ensure any lingering Firebase session is signed out
+    await ref.read(authProvider.notifier).signOut();
+
     if (mounted) {
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const AppScreen()),
@@ -84,6 +90,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     if (result == true && mounted) {
       final prefs = ref.read(sharedPreferencesProvider);
       await prefs.setBool('has_completed_onboarding', true);
+      await prefs.setBool('is_guest_mode', false);
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const AppScreen()),
@@ -105,8 +112,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
     final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setBool('has_completed_onboarding', true);
+    await prefs.setBool('is_guest_mode', true);
+    await prefs.remove('user_email');
+
+    // Sign out of any previous Firebase session so guest mode is clean
+    await ref.read(authProvider.notifier).signOut();
+
     final trimmedName = _nameController.text.trim();
-    final finalName = trimmedName.isNotEmpty ? trimmedName : 'User';
+    final finalName = trimmedName.isNotEmpty ? trimmedName : 'Guest User';
     await prefs.setString('user_name', finalName);
     await prefs.setString('onboarding_name', finalName);
     await prefs.setString(

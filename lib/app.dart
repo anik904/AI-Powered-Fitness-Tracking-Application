@@ -27,7 +27,7 @@ class _AppScreenState extends State<AppScreen> {
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           border: Border(
-            top: BorderSide(color: AppTheme.textSecondary.withOpacity(0.1), width: 1),
+            top: BorderSide(color: AppTheme.textSecondary.withValues(alpha: 0.1), width: 1),
           ),
         ),
         child: BottomNavigationBar(
