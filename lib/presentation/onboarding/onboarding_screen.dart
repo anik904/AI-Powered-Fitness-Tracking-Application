@@ -6,8 +6,8 @@ import '../../core/provider/exercise_goal_provider.dart';
 import '../../core/providers/shared_preferences_provider.dart';
 import '../../repository/model/exercise_type.dart';
 import '../../app.dart';
-
 import '../../widgets/exercise_icon_widget.dart';
+import '../profile/auth/login_screen.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -19,7 +19,7 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
-  
+
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _pushupGoalController = TextEditingController(text: '20');
   final TextEditingController _squatGoalController = TextEditingController(text: '20');
@@ -34,14 +34,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   void _nextPage() {
-    if (_currentPage == 2 && _nameController.text.trim().isEmpty) {
+    // Page index 1 is name input
+    if (_currentPage == 1 && _nameController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter your name to continue.')),
       );
       return;
     }
 
-    if (_currentPage < 4) {
+    if (_currentPage < 3) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
@@ -50,7 +51,48 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       _finishOnboarding();
     }
   }
-  
+
+  void _previousPage() {
+    if (_currentPage > 0) {
+      _pageController.previousPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    } else {
+      Navigator.of(context).pop();
+    }
+  }
+
+  Future<void> _skipToApp() async {
+    final prefs = ref.read(sharedPreferencesProvider);
+    await prefs.setBool('has_completed_onboarding', true);
+    if (prefs.getString('user_name') == null || prefs.getString('user_name')!.isEmpty) {
+      await prefs.setString('user_name', 'User');
+    }
+    if (mounted) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const AppScreen()),
+        (route) => false,
+      );
+    }
+  }
+
+  Future<void> _openSignIn() async {
+    final result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+    );
+    if (result == true && mounted) {
+      final prefs = ref.read(sharedPreferencesProvider);
+      await prefs.setBool('has_completed_onboarding', true);
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const AppScreen()),
+          (route) => false,
+        );
+      }
+    }
+  }
+
   Future<void> _finishOnboarding() async {
     final pushupGoal = _parseGoal(_pushupGoalController, 20);
     final squatGoal = _parseGoal(_squatGoalController, 20);
@@ -63,7 +105,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
     final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setBool('has_completed_onboarding', true);
-    await prefs.setString('user_name', _nameController.text);
+    final trimmedName = _nameController.text.trim();
+    final finalName = trimmedName.isNotEmpty ? trimmedName : 'User';
+    await prefs.setString('user_name', finalName);
+    await prefs.setString('onboarding_name', finalName);
     await prefs.setString(
       'user_goal',
       'Push-ups: $pushupGoal, Squats: $squatGoal, Jumping Jacks: $jumpingJackGoal reps/day',
@@ -71,10 +116,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     await prefs.setInt('pushup_goal', pushupGoal);
     await prefs.setInt('squat_goal', squatGoal);
     await prefs.setInt('jumping_jack_goal', jumpingJackGoal);
-    
+
     if (mounted) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const AppScreen()),
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const AppScreen()),
+        (route) => false,
       );
     }
   }
@@ -93,6 +139,40 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.background,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+          color: AppTheme.textPrimary,
+          onPressed: _previousPage,
+        ),
+        actions: [
+          TextButton(
+            onPressed: _openSignIn,
+            child: Text(
+              'Sign In',
+              style: TextStyle(
+                color: AppTheme.accentColor,
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: _skipToApp,
+            child: Text(
+              'Skip',
+              style: TextStyle(
+                color: AppTheme.textSecondary,
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
       body: SafeArea(
         child: Column(
           children: [
@@ -106,7 +186,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   });
                 },
                 children: [
-                  _buildWelcomeScreen(),
                   _buildAppInfoScreen(),
                   _buildNameInputScreen(),
                   _buildGoalInputScreen(),
@@ -117,35 +196,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             _buildBottomControls(),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildWelcomeScreen() {
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.fitness_center, size: 100, color: AppTheme.accentColor),
-          const SizedBox(height: 32),
-          Text(
-            'Welcome to AI Fitness Tracker!',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: AppTheme.textPrimary,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Your personal AI-powered fitness journey starts here.',
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: AppTheme.textSecondary,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
       ),
     );
   }
@@ -161,17 +211,17 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           Text(
             'Track & Improve',
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: AppTheme.textPrimary,
-            ),
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textPrimary,
+                ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
           Text(
             'Get real-time feedback on your posture, track your progress, and reach your fitness goals with advanced AI pose detection.',
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: AppTheme.textSecondary,
-            ),
+                  color: AppTheme.textSecondary,
+                ),
             textAlign: TextAlign.center,
           ),
         ],
@@ -188,9 +238,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           Text(
             'What should we call you?',
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: AppTheme.textPrimary,
-            ),
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textPrimary,
+                ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 32),
@@ -219,7 +269,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Widget _buildGoalInputScreen() {
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -227,17 +277,17 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           Text(
             'Set your daily rep goals',
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: AppTheme.textPrimary,
-            ),
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textPrimary,
+                ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
           Text(
             'Choose daily targets for each exercise. You can update them later.',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppTheme.textSecondary,
-            ),
+                  color: AppTheme.textSecondary,
+                ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
@@ -290,9 +340,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           child: Text(
             title,
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: AppTheme.textPrimary,
-              fontWeight: FontWeight.w600,
-            ),
+                  color: AppTheme.textPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
           ),
         ),
         const SizedBox(width: 12),
@@ -330,22 +380,22 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.check_circle_outline, size: 100, color: Colors.green),
+          const Icon(Icons.check_circle_outline, size: 100, color: Colors.green),
           const SizedBox(height: 32),
           Text(
             'All Set!',
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: AppTheme.textPrimary,
-            ),
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textPrimary,
+                ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
           Text(
             'You are now ready to begin your fitness journey.',
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: AppTheme.textSecondary,
-            ),
+                  color: AppTheme.textSecondary,
+                ),
             textAlign: TextAlign.center,
           ),
         ],
@@ -361,7 +411,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         children: [
           // Step indicators
           Row(
-            children: List.generate(5, (index) {
+            children: List.generate(4, (index) {
               return Container(
                 margin: const EdgeInsets.only(right: 8),
                 width: 10,
@@ -370,7 +420,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   shape: BoxShape.circle,
                   color: _currentPage == index
                       ? AppTheme.accentColor
-                      : AppTheme.textSecondary.withOpacity(0.3),
+                      : AppTheme.textSecondary.withValues(alpha: 0.3),
                 ),
               );
             }),
@@ -386,7 +436,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               ),
             ),
             child: Text(
-              _currentPage == 4 ? 'Get Started' : 'Next',
+              _currentPage == 3 ? 'Get Started' : 'Next',
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
           ),

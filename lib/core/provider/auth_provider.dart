@@ -3,7 +3,11 @@ import 'dart:developer' as developer;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../repository/services/sync/sync_service.dart';
+import '../database/database_helper.dart';
 import '../providers/shared_preferences_provider.dart';
+import 'challenge_provider.dart';
+import 'exercise_goal_provider.dart';
+import 'workout_provider.dart';
 
 class UserAuthState {
   final User? user;
@@ -61,29 +65,53 @@ class AuthNotifier extends Notifier<UserAuthState> {
   }
 
   Future<void> _onUserAuthenticated(User user) async {
-    // Save to SharedPreferences for display
+    // 1. Save user profile info for display
     try {
       final prefs = ref.read(sharedPreferencesProvider);
-      await prefs.setString('user_name', user.displayName ?? user.email?.split('@').first ?? 'User');
+      final onboardingName = prefs.getString('onboarding_name');
+      final existingName = prefs.getString('user_name');
+      
+      if (onboardingName != null && onboardingName.trim().isNotEmpty) {
+        await prefs.setString('user_name', onboardingName.trim());
+      } else if (existingName == null || existingName.trim().isEmpty || existingName == 'User' || existingName == 'Guest User') {
+        final fallbackName = user.displayName ?? user.email?.split('@').first ?? 'User';
+        await prefs.setString('user_name', fallbackName);
+      }
       await prefs.setString('user_email', user.email ?? '');
     } catch (_) {}
 
-    // Register on backend in background
+    // 2. Register on backend in background
     try {
+      final prefs = ref.read(sharedPreferencesProvider);
+      final displayName = prefs.getString('onboarding_name') ?? prefs.getString('user_name') ?? user.displayName;
+
       await _syncService.registerUserOnBackend(
         firebaseUid: user.uid,
         email: user.email ?? '',
-        displayName: user.displayName,
+        displayName: displayName,
       );
-
-      // Perform initial background sync
-      unawaited(_syncService.uploadLocalState(
-        user.uid,
-        email: user.email,
-        displayName: user.displayName,
-      ));
     } catch (e) {
-      developer.log('Post-auth background sync error: $e', name: 'AuthNotifier');
+      developer.log('Post-auth backend registration error: $e', name: 'AuthNotifier');
+    }
+
+    // 3. Clear previous local cache and download this user's cloud data
+    try {
+      await DatabaseHelper.instance.clearAllData();
+      final downloadRes = await _syncService.downloadRemoteState(user.uid);
+      if (downloadRes != null) {
+        developer.log('Successfully synced ${downloadRes.workouts.length} workouts and ${downloadRes.goals.length} goals from cloud for user ${user.uid}', name: 'AuthNotifier');
+      }
+    } catch (e) {
+      developer.log('Post-auth download remote state error: $e', name: 'AuthNotifier');
+    }
+
+    // 4. Refresh local providers with newly downloaded data
+    try {
+      await ref.read(workoutProvider.notifier).loadRecentWorkouts();
+      await ref.read(exerciseGoalProvider.notifier).reloadFromDb();
+      ref.read(challengeProvider.notifier).reloadFromPrefs();
+    } catch (e) {
+      developer.log('Post-auth reload providers error: $e', name: 'AuthNotifier');
     }
   }
 
@@ -126,9 +154,61 @@ class AuthNotifier extends Notifier<UserAuthState> {
     }
   }
 
+  Future<bool> sendPasswordResetEmail(String email) async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email.trim());
+      state = state.copyWith(isLoading: false);
+      return true;
+    } on FirebaseAuthException catch (e) {
+      state = state.copyWith(isLoading: false, error: e.message ?? 'Password reset failed');
+      return false;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+      return false;
+    }
+  }
+
+  Future<bool> updatePassword(String newPassword) async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      state = state.copyWith(error: 'User not signed in');
+      return false;
+    }
+
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      await currentUser.updatePassword(newPassword);
+      state = state.copyWith(isLoading: false);
+      return true;
+    } on FirebaseAuthException catch (e) {
+      state = state.copyWith(isLoading: false, error: e.message ?? 'Password update failed');
+      return false;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+      return false;
+    }
+  }
+
   Future<void> signOut() async {
     try {
       await FirebaseAuth.instance.signOut();
+
+      // Clear local database to prevent data leaking between user accounts
+      await DatabaseHelper.instance.clearAllData();
+
+      // Clear user-specific preferences
+      final prefs = ref.read(sharedPreferencesProvider);
+      await prefs.remove('user_name');
+      await prefs.remove('user_email');
+      await prefs.remove('challenge_started');
+      await prefs.remove('challenge_start_date');
+
+      // Reload providers
+      await ref.read(workoutProvider.notifier).loadRecentWorkouts();
+      await ref.read(exerciseGoalProvider.notifier).reloadFromDb();
+      ref.read(challengeProvider.notifier).reloadFromPrefs();
+
       state = const UserAuthState();
     } catch (e) {
       developer.log('Sign out error: $e', name: 'AuthNotifier');

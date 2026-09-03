@@ -3,6 +3,7 @@ import 'package:ai_fitness_tracker/widgets/custom_text_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/provider/auth_provider.dart';
+import '../../../core/providers/shared_preferences_provider.dart';
 
 class RegistrationScreen extends ConsumerStatefulWidget {
   const RegistrationScreen({super.key});
@@ -12,12 +13,30 @@ class RegistrationScreen extends ConsumerStatefulWidget {
 }
 
 class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
+  final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    // Pre-fill name if already entered during onboarding or previously set
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final prefs = ref.read(sharedPreferencesProvider);
+      final existingName = prefs.getString('onboarding_name') ?? prefs.getString('user_name');
+      if (existingName != null &&
+          existingName.trim().isNotEmpty &&
+          existingName.trim() != 'User' &&
+          existingName.trim() != 'Guest User') {
+        _nameController.text = existingName.trim();
+      }
+    });
+  }
+
+  @override
   void dispose() {
+    _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -25,11 +44,12 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
   }
 
   Future<void> _register() async {
+    final name = _nameController.text.trim();
     final email = _emailController.text.trim();
     final password = _passwordController.text;
     final confirmPassword = _confirmPasswordController.text;
 
-    if (email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
+    if (name.isEmpty || email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill all fields')),
       );
@@ -43,9 +63,15 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
       return;
     }
 
+    // Save name locally before registering
+    final prefs = ref.read(sharedPreferencesProvider);
+    await prefs.setString('user_name', name);
+    await prefs.setString('onboarding_name', name);
+
     final success = await ref.read(authProvider.notifier).register(
       email: email,
       password: password,
+      displayName: name,
     );
 
     if (!mounted) return;
@@ -87,6 +113,13 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 40),
+              CustomTextField(
+                controller: _nameController,
+                labelText: 'Full Name',
+                prefixIcon: Icons.person_outline,
+                keyboardType: TextInputType.name,
+              ),
+              const SizedBox(height: 16),
               CustomTextField(
                 controller: _emailController,
                 labelText: 'Email',

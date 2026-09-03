@@ -2,7 +2,6 @@ import 'package:ai_fitness_tracker/widgets/custom_button.dart';
 import 'package:ai_fitness_tracker/widgets/custom_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/network/api_constants.dart';
 import '../../../core/provider/auth_provider.dart';
 import '../../../core/provider/exercise_goal_provider.dart';
 import '../../../core/provider/sync_provider.dart';
@@ -13,7 +12,7 @@ import 'profile_section_header.dart';
 import 'settings_list_tile.dart';
 import '../../../core/database/database_helper.dart';
 import '../../../widgets/exercise_icon_widget.dart';
-import '../../onboarding/onboarding_screen.dart';
+import '../../onboarding/welcome_screen.dart';
 
 class ProfileContentView extends ConsumerStatefulWidget {
   final bool isSignedIn;
@@ -162,179 +161,59 @@ class _ProfileContentViewState extends ConsumerState<ProfileContentView> {
 
       if (!mounted) return;
 
-      // Navigate to onboarding screen
+      // Navigate to welcome screen
       Navigator.of(this.context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+        MaterialPageRoute(builder: (_) => const WelcomeScreen()),
         (route) => false,
       );
     }
   }
 
-  Future<void> _showServerSettingsDialog(BuildContext context) async {
-    final prefs = ref.read(sharedPreferencesProvider);
-    final urlController = TextEditingController(text: ApiConstants.baseUrl);
-    bool isTesting = false;
-    String? statusMessage;
-    bool? isSuccess;
+  Future<void> _handleChangePassword(BuildContext context, String? userEmail) async {
+    if (!widget.isSignedIn || userEmail == null || userEmail.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please sign in to change your password.')),
+      );
+      return;
+    }
 
-    await showDialog(
+    final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) {
-          return AlertDialog(
-            title: const Row(
-              children: [
-                Icon(Icons.dns_rounded, size: 24),
-                SizedBox(width: 8),
-                Text('Backend Server URL', style: TextStyle(fontSize: 18)),
-              ],
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Change Password'),
+          content: Text(
+            'Send a secure password reset link to $userEmail?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancel'),
             ),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Set backend API host. For USB-connected physical devices, 127.0.0.1 (with adb reverse tcp:8000 tcp:8000) or your computer LAN IP is used.',
-                    style: TextStyle(fontSize: 13, color: Colors.grey),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: urlController,
-                    decoration: const InputDecoration(
-                      labelText: 'Server URL',
-                      hintText: 'http://127.0.0.1:8000',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.link),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  if (statusMessage != null) ...[
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: isSuccess == true
-                            ? Colors.green.withValues(alpha: 0.15)
-                            : Colors.red.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            isSuccess == true ? Icons.check_circle : Icons.error,
-                            color: isSuccess == true ? Colors.green : Colors.red,
-                            size: 18,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              statusMessage!,
-                              style: TextStyle(
-                                color: isSuccess == true ? Colors.green[800] : Colors.red[800],
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          icon: isTesting
-                              ? const SizedBox(
-                                  width: 14,
-                                  height: 14,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : const Icon(Icons.network_check, size: 16),
-                          label: const Text('Test', style: TextStyle(fontSize: 13)),
-                          onPressed: isTesting
-                              ? null
-                              : () async {
-                                  setDialogState(() {
-                                    isTesting = true;
-                                    statusMessage = 'Testing connection...';
-                                    isSuccess = null;
-                                  });
-                                  final ok = await ApiConstants.testConnection(urlController.text.trim());
-                                  setDialogState(() {
-                                    isTesting = false;
-                                    isSuccess = ok;
-                                    statusMessage = ok
-                                        ? 'Connected successfully (HTTP 200 OK)!'
-                                        : 'Connection failed. Check server status or IP.';
-                                  });
-                                },
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          icon: const Icon(Icons.auto_fix_high, size: 16),
-                          label: const Text('Auto-Detect', style: TextStyle(fontSize: 13)),
-                          onPressed: isTesting
-                              ? null
-                              : () async {
-                                  setDialogState(() {
-                                    isTesting = true;
-                                    statusMessage = 'Probing candidate URLs...';
-                                    isSuccess = null;
-                                  });
-                                  final found = await ApiConstants.probeReachableHost();
-                                  setDialogState(() {
-                                    isTesting = false;
-                                    if (found != null) {
-                                      urlController.text = found;
-                                      isSuccess = true;
-                                      statusMessage = 'Detected active host: $found';
-                                    } else {
-                                      isSuccess = false;
-                                      statusMessage = 'No reachable host detected.';
-                                    }
-                                  });
-                                },
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Send Reset Link'),
             ),
-            actions: [
-              TextButton(
-                onPressed: () async {
-                  await ApiConstants.resetBaseUrl(prefs);
-                  urlController.text = ApiConstants.baseUrl;
-                  if (mounted) setState(() {});
-                  if (context.mounted) Navigator.pop(dialogContext);
-                },
-                child: const Text('Reset Default'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext),
-                child: const Text('Cancel'),
-              ),
-              FilledButton(
-                onPressed: () async {
-                  final newUrl = urlController.text.trim();
-                  if (newUrl.isNotEmpty) {
-                    await ApiConstants.setBaseUrl(newUrl, prefs);
-                    if (mounted) setState(() {});
-                  }
-                  if (context.mounted) Navigator.pop(dialogContext);
-                },
-                child: const Text('Save'),
-              ),
-            ],
-          );
-        },
-      ),
+          ],
+        );
+      },
     );
+
+    if (confirmed == true && mounted) {
+      final success = await ref.read(authProvider.notifier).sendPasswordResetEmail(userEmail);
+      if (!mounted) return;
+
+      if (success) {
+        ScaffoldMessenger.of(this.context).showSnackBar(
+          SnackBar(content: Text('Password reset link sent to $userEmail')),
+        );
+      } else {
+        final error = ref.read(authProvider).error ?? 'Failed to send password reset email';
+        ScaffoldMessenger.of(this.context).showSnackBar(
+          SnackBar(content: Text(error)),
+        );
+      }
+    }
   }
 
   @override
@@ -347,7 +226,14 @@ class _ProfileContentViewState extends ConsumerState<ProfileContentView> {
     final pushupGoal = _goalForType(goals, ExerciseType.pushup, prefs.getInt('pushup_goal') ?? 20);
     final squatGoal = _goalForType(goals, ExerciseType.squat, prefs.getInt('squat_goal') ?? 20);
     final jumpingJackGoal = _goalForType(goals, ExerciseType.jumpingJack, prefs.getInt('jumping_jack_goal') ?? 50);
-    final userName = authState.user != null ? authState.displayName : (prefs.getString('user_name') ?? 'Guest User');
+
+    final onboardingName = prefs.getString('onboarding_name');
+    final savedName = prefs.getString('user_name');
+    final userName = (onboardingName != null && onboardingName.trim().isNotEmpty)
+        ? onboardingName.trim()
+        : ((savedName != null && savedName.trim().isNotEmpty && savedName != 'User' && savedName != 'Guest User')
+            ? savedName.trim()
+            : (authState.user != null ? authState.displayName : 'Guest User'));
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -472,12 +358,6 @@ class _ProfileContentViewState extends ConsumerState<ProfileContentView> {
                     ref.read(syncProvider.notifier).toggleAutoSync(value);
                   },
                 ),
-                SettingsListTile(
-                  icon: Icons.dns_outlined,
-                  title: 'Backend Server',
-                  subtitle: ApiConstants.baseUrl,
-                  onTap: () => _showServerSettingsDialog(context),
-                ),
               ],
             ),
           ),
@@ -554,11 +434,7 @@ class _ProfileContentViewState extends ConsumerState<ProfileContentView> {
             child: SettingsListTile(
               icon: Icons.lock_reset,
               title: 'Change Password',
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Password reset link sent to your registered email.')),
-                );
-              },
+              onTap: () => _handleChangePassword(context, authState.email),
             ),
           ),
 
