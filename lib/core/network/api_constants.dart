@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiConstants {
-  static const String baseUrl = 'http://192.168.1.164:8000';
+  static const String baseUrl = 'http://192.168.1.6:8000';
 
   static const Duration requestTimeout = Duration(seconds: 20);
 

@@ -3,7 +3,6 @@ import 'package:ai_fitness_tracker/widgets/custom_text_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/provider/auth_provider.dart';
-import '../../../core/providers/shared_preferences_provider.dart';
 import 'registration_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -29,16 +28,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final password = _passwordController.text;
 
     if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill all fields')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please fill all fields')));
       return;
     }
 
-    final success = await ref.read(authProvider.notifier).signIn(
-      email: email,
-      password: password,
-    );
+    final success = await ref
+        .read(authProvider.notifier)
+        .signIn(email: email, password: password);
 
     if (!mounted) return;
 
@@ -46,14 +44,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       Navigator.pop(context, true);
     } else {
       final error = ref.read(authProvider).error ?? 'Login failed';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error)));
     }
   }
 
   Future<void> _showForgotPasswordDialog() async {
-    final resetEmailController = TextEditingController(text: _emailController.text.trim());
+    final resetEmailController = TextEditingController(
+      text: _emailController.text.trim(),
+    );
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
@@ -103,18 +103,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         return;
       }
 
-      final success = await ref.read(authProvider.notifier).sendPasswordResetEmail(email);
+      final success = await ref
+          .read(authProvider.notifier)
+          .sendPasswordResetEmail(email);
       if (!mounted) return;
 
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Password reset link sent to your email!')),
+          const SnackBar(
+            content: Text('Password reset link sent to your email!'),
+          ),
         );
       } else {
-        final error = ref.read(authProvider).error ?? 'Failed to send password reset email';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error)),
-        );
+        final error =
+            ref.read(authProvider).error ??
+            'Failed to send password reset email';
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error)));
       }
     }
   }
@@ -124,9 +130,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final authState = ref.watch(authProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Sign In'),
-      ),
+      appBar: AppBar(title: const Text('Sign In')),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -134,7 +138,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 20),
-              Icon(Icons.lock_outline, size: 80, color: Theme.of(context).colorScheme.primary),
+              Icon(
+                Icons.lock_outline,
+                size: 80,
+                color: Theme.of(context).colorScheme.primary,
+              ),
               const SizedBox(height: 32),
               Text(
                 'Welcome Back',
@@ -162,27 +170,31 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   onPressed: _showForgotPasswordDialog,
                   child: Text(
                     'Forgot Password?',
-                    style: TextStyle(color: Theme.of(context).colorScheme.primary),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
                   ),
                 ),
               ),
               const SizedBox(height: 24),
               authState.isLoading
                   ? const Center(child: CircularProgressIndicator())
-                  : CustomButton(
-                      text: 'Sign In',
-                      onPressed: _login,
-                    ),
+                  : CustomButton(text: 'Sign In', onPressed: _login),
               const SizedBox(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text("Don't have an account?", style: Theme.of(context).textTheme.bodyMedium),
+                  Text(
+                    "Don't have an account?",
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
                   TextButton(
                     onPressed: () async {
                       final result = await Navigator.push<bool>(
                         context,
-                        MaterialPageRoute(builder: (context) => const RegistrationScreen()),
+                        MaterialPageRoute(
+                          builder: (context) => const RegistrationScreen(),
+                        ),
                       );
                       if (result == true && context.mounted) {
                         Navigator.pop(context, true);
@@ -197,27 +209,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                   ),
                 ],
-              ),
-              const SizedBox(height: 8),
-              Center(
-                child: TextButton(
-                  onPressed: () async {
-                    final prefs = ref.read(sharedPreferencesProvider);
-                    await prefs.setBool('is_guest_mode', true);
-                    await prefs.setBool('has_completed_onboarding', true);
-                    await prefs.remove('user_email');
-                    await prefs.remove('onboarding_name');
-                    await prefs.setString('user_name', 'Guest User');
-                    await ref.read(authProvider.notifier).signOut();
-                    if (context.mounted) {
-                      Navigator.pop(context, false);
-                    }
-                  },
-                  child: Text(
-                    'Continue as Guest',
-                    style: TextStyle(color: Colors.grey[600]),
-                  ),
-                ),
               ),
             ],
           ),

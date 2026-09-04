@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:developer' as developer;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../repository/model/exercise_type.dart';
 import '../../repository/services/sync/sync_service.dart';
 import '../database/database_helper.dart';
 import '../providers/shared_preferences_provider.dart';
@@ -51,7 +52,7 @@ class AuthNotifier extends Notifier<UserAuthState> {
     final hasCompletedOnboarding = prefs.getBool('has_completed_onboarding') ?? false;
     final isGuest = prefs.getBool('is_guest_mode') ?? false;
 
-    // If guest mode is active or onboarding not yet completed, clear lingering Keychain session
+    // If guest mode is active or onboarding not yet completed, clear session
     if ((!hasCompletedOnboarding || isGuest) && FirebaseAuth.instance.currentUser != null) {
       FirebaseAuth.instance.signOut();
     }
@@ -94,7 +95,7 @@ class AuthNotifier extends Notifier<UserAuthState> {
   }
 
   Future<void> _onUserAuthenticated(User user) async {
-    // 1. Save user profile info for display
+    // Save user profile info for display
     try {
       final prefs = ref.read(sharedPreferencesProvider);
       await prefs.setBool('is_guest_mode', false);
@@ -133,7 +134,7 @@ class AuthNotifier extends Notifier<UserAuthState> {
       developer.log('Error saving user profile info: $e', name: 'AuthNotifier');
     }
 
-    // 2. Register on backend in background
+    // Register on backend in background
     try {
       final prefs = ref.read(sharedPreferencesProvider);
       final displayName = prefs.getString('user_name') ?? user.displayName;
@@ -147,10 +148,41 @@ class AuthNotifier extends Notifier<UserAuthState> {
       developer.log('Post-auth backend registration error: $e', name: 'AuthNotifier');
     }
 
-    // 3. Clear previous local cache and download this user's cloud data
+    // Ensure local guest goals exist in database and upload guest state to cloud
     try {
-      await DatabaseHelper.instance.clearAllData();
-      final downloadRes = await _syncService.downloadRemoteState(user.uid);
+      final prefs = ref.read(sharedPreferencesProvider);
+      final db = DatabaseHelper.instance;
+
+      // Ensure all goals from state or SharedPreferences are saved in DB
+      final currentGoals = ref.read(exerciseGoalProvider);
+      for (final goal in currentGoals) {
+        final existingGoal = await db.getGoal(goal.cardData.routeType.name);
+        if (existingGoal == null) {
+          final prefKey = goal.cardData.routeType == ExerciseType.jumpingJack
+              ? 'jumping_jack_goal'
+              : '${goal.cardData.routeType.name}_goal';
+          final target = prefs.getInt(prefKey) ?? goal.target;
+          await db.saveGoal(goal.cardData.routeType.name, target, goal.unit);
+        }
+      }
+
+      // Upload local guest data (goals, workouts, challenge state) to the cloud for this user
+      final displayName = prefs.getString('user_name') ?? user.displayName;
+      await _syncService.uploadLocalState(
+        user.uid,
+        email: user.email,
+        displayName: displayName,
+      );
+    } catch (e) {
+      developer.log('Post-auth upload local state error: $e', name: 'AuthNotifier');
+    }
+
+    // Download remote state and merge into local database
+    try {
+      final downloadRes = await _syncService.downloadRemoteState(
+        user.uid,
+        preserveLocalConflicts: true,
+      );
       if (downloadRes != null) {
         developer.log('Successfully synced ${downloadRes.workouts.length} workouts and ${downloadRes.goals.length} goals from cloud for user ${user.uid}', name: 'AuthNotifier');
       }
@@ -158,7 +190,7 @@ class AuthNotifier extends Notifier<UserAuthState> {
       developer.log('Post-auth download remote state error: $e', name: 'AuthNotifier');
     }
 
-    // 4. Refresh local providers with newly downloaded data
+    // Refresh local providers with newly synced data
     try {
       await ref.read(workoutProvider.notifier).loadRecentWorkouts();
       await ref.read(exerciseGoalProvider.notifier).reloadFromDb();
@@ -171,7 +203,6 @@ class AuthNotifier extends Notifier<UserAuthState> {
   Future<bool> signIn({required String email, required String password}) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      // Clear guest mode first so stream listener does not reject the sign-in event
       final prefs = ref.read(sharedPreferencesProvider);
       await prefs.setBool('is_guest_mode', false);
       await prefs.setBool('has_completed_onboarding', true);
@@ -265,19 +296,17 @@ class AuthNotifier extends Notifier<UserAuthState> {
     try {
       await FirebaseAuth.instance.signOut();
 
-      // Clear local database to prevent data leaking between user accounts
+      // Clear local database
       await DatabaseHelper.instance.clearAllData();
 
-      // Clear user-specific preferences and switch to guest mode
+      // Clear all SharedPreferences
       final prefs = ref.read(sharedPreferencesProvider);
-      await prefs.setBool('is_guest_mode', true);
-      await prefs.remove('user_email');
-      await prefs.remove('onboarding_name');
-      await prefs.setString('user_name', 'Guest User');
-      await prefs.remove('challenge_started');
-      await prefs.remove('challenge_start_date');
+      await prefs.clear();
 
-      // Reload providers
+      // Reset onboarding state provider
+      ref.read(onboardingStatusProvider.notifier).state = false;
+
+      // Reload all providers to clean state
       await ref.read(workoutProvider.notifier).loadRecentWorkouts();
       await ref.read(exerciseGoalProvider.notifier).reloadFromDb();
       ref.read(challengeProvider.notifier).reloadFromPrefs();
@@ -286,6 +315,23 @@ class AuthNotifier extends Notifier<UserAuthState> {
     } catch (e) {
       developer.log('Sign out error: $e', name: 'AuthNotifier');
     }
+  }
+
+  Future<void> deleteAllUserData() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final uid = currentUser?.uid;
+
+    if (uid != null) {
+      // Clear online workouts and challenge data on backend
+      try {
+        await _syncService.clearOnlineUserData(uid);
+      } catch (e) {
+        developer.log('Clear online data error: $e', name: 'AuthNotifier');
+      }
+    }
+
+    // Sign out, wipe local database & preferences, and reset state
+    await signOut();
   }
 
   Future<bool> deleteAccount() async {
@@ -298,6 +344,10 @@ class AuthNotifier extends Notifier<UserAuthState> {
       await _syncService.deleteUserFromBackend(uid);
       // Delete on Firebase
       await currentUser.delete();
+      await DatabaseHelper.instance.clearAllData();
+      final prefs = ref.read(sharedPreferencesProvider);
+      await prefs.clear();
+      ref.read(onboardingStatusProvider.notifier).state = false;
       state = const UserAuthState();
       return true;
     } catch (e) {

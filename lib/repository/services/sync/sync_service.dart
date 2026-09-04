@@ -57,7 +57,6 @@ class SyncService {
     await prefs.setBool(autoSyncKey, enabled);
   }
 
-  /// Full background state upload
   Future<SyncUploadResponse?> uploadLocalState(
     String firebaseUid, {
     String? email,
@@ -74,8 +73,20 @@ class SyncService {
 
       final db = DatabaseHelper.instance;
       final workouts = await db.getAllWorkouts();
-      final goals = await db.getAllGoals();
+      var goals = await db.getAllGoals();
       final prefs = await SharedPreferences.getInstance();
+
+      // Ensure DB has goals before uploading
+      if (goals.isEmpty) {
+        final pushup = prefs.getInt('pushup_goal') ?? 20;
+        final squat = prefs.getInt('squat_goal') ?? 20;
+        final jumpingJack = prefs.getInt('jumping_jack_goal') ?? 50;
+
+        await db.saveGoal(ExerciseType.pushup.name, pushup, 'Reps');
+        await db.saveGoal(ExerciseType.squat.name, squat, 'Reps');
+        await db.saveGoal(ExerciseType.jumpingJack.name, jumpingJack, 'Reps');
+        goals = await db.getAllGoals();
+      }
 
       final isChallengeStarted = prefs.getBool('challenge_started') ?? false;
       final challengeStartDateStr = prefs.getString('challenge_start_date');
@@ -131,14 +142,15 @@ class SyncService {
     }
   }
 
-  /// Full background state download and local DB merge
-  Future<SyncDownloadResponse?> downloadRemoteState(String firebaseUid) async {
+  Future<SyncDownloadResponse?> downloadRemoteState(
+    String firebaseUid, {
+    bool preserveLocalConflicts = false,
+  }) async {
     try {
       final response = await _syncApi.downloadSync(firebaseUid: firebaseUid);
       final db = DatabaseHelper.instance;
       final prefs = await SharedPreferences.getInstance();
 
-      // Merge workouts
       final sessions = response.workouts.map((w) {
         return WorkoutSession(
           exerciseType: ExerciseType.values.firstWhere(
@@ -152,21 +164,48 @@ class SyncService {
       }).toList();
       await db.bulkUpsertWorkouts(sessions);
 
-      // Merge goals
+      int pushup = prefs.getInt('pushup_goal') ?? 20;
+      int squat = prefs.getInt('squat_goal') ?? 20;
+      int jumpingJack = prefs.getInt('jumping_jack_goal') ?? 50;
+
       for (final g in response.goals) {
+        final existingLocalGoal = await db.getGoal(g.exerciseType);
+        if (preserveLocalConflicts && existingLocalGoal != null) {
+          continue;
+        }
+
         await db.saveGoal(g.exerciseType, g.target, g.unit);
+        if (g.exerciseType == ExerciseType.pushup.name) {
+          pushup = g.target;
+          await prefs.setInt('pushup_goal', g.target);
+        } else if (g.exerciseType == ExerciseType.squat.name) {
+          squat = g.target;
+          await prefs.setInt('squat_goal', g.target);
+        } else if (g.exerciseType == ExerciseType.jumpingJack.name) {
+          jumpingJack = g.target;
+          await prefs.setInt('jumping_jack_goal', g.target);
+        }
       }
 
-      // Merge challenge state
+      if (response.goals.isNotEmpty && !preserveLocalConflicts) {
+        await prefs.setString(
+          'user_goal',
+          'Push-ups: $pushup, Squats: $squat, Jumping Jacks: $jumpingJack reps/day',
+        );
+      }
+
+      final localChallengeStarted = prefs.getBool('challenge_started') ?? false;
       if (response.challenge != null) {
-        await prefs.setBool('challenge_started', response.challenge!.isStarted);
-        if (response.challenge!.startDate != null) {
-          await prefs.setString(
-            'challenge_start_date',
-            response.challenge!.startDate!.toIso8601String(),
-          );
-        } else {
-          await prefs.remove('challenge_start_date');
+        if (!preserveLocalConflicts || !localChallengeStarted) {
+          await prefs.setBool('challenge_started', response.challenge!.isStarted);
+          if (response.challenge!.startDate != null) {
+            await prefs.setString(
+              'challenge_start_date',
+              response.challenge!.startDate!.toIso8601String(),
+            );
+          } else {
+            await prefs.remove('challenge_start_date');
+          }
         }
       }
 
@@ -202,7 +241,6 @@ class SyncService {
         });
   }
 
-  /// Single non-blocking goal sync
   void syncGoalInBackground({
     required String? firebaseUid,
     required String exerciseType,
@@ -226,7 +264,6 @@ class SyncService {
         });
   }
 
-  /// Single non-blocking challenge start
   void syncChallengeStartInBackground(String? firebaseUid) {
     if (firebaseUid == null || firebaseUid.isEmpty) return;
     _challengeApi
@@ -240,7 +277,6 @@ class SyncService {
         });
   }
 
-  /// Single non-blocking challenge reset
   void syncChallengeResetInBackground(String? firebaseUid) {
     if (firebaseUid == null || firebaseUid.isEmpty) return;
     _challengeApi
@@ -254,7 +290,6 @@ class SyncService {
         });
   }
 
-  /// Single non-blocking clear workouts
   void syncClearWorkoutsInBackground(String? firebaseUid, {DateTime? since}) {
     if (firebaseUid == null || firebaseUid.isEmpty) return;
     _workoutApi
@@ -268,7 +303,6 @@ class SyncService {
         });
   }
 
-  /// Backend user registration
   Future<void> registerUserOnBackend({
     required String firebaseUid,
     required String email,
@@ -286,7 +320,6 @@ class SyncService {
     }
   }
 
-  /// Backend get user
   Future<UserResponseModel?> getBackendUser(String firebaseUid) async {
     try {
       final user = await _authApi.getCurrentUser(firebaseUid);
@@ -298,13 +331,22 @@ class SyncService {
     }
   }
 
-  /// Backend delete user
   Future<void> deleteUserFromBackend(String firebaseUid) async {
     try {
       await _authApi.deleteUser(firebaseUid);
       developer.log('User deleted from backend', name: 'SyncService');
     } catch (e) {
       developer.log('Backend delete user error: $e', name: 'SyncService');
+    }
+  }
+
+  Future<void> clearOnlineUserData(String firebaseUid) async {
+    try {
+      await _workoutApi.clearWorkouts(firebaseUid: firebaseUid);
+      await _challengeApi.resetChallenge(firebaseUid: firebaseUid);
+      developer.log('Online user data cleared on backend', name: 'SyncService');
+    } catch (e) {
+      developer.log('Failed to clear online user data on backend: $e', name: 'SyncService');
     }
   }
 }

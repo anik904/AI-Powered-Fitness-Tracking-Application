@@ -12,7 +12,6 @@ import '../../../repository/model/exercise_type.dart';
 import '../auth/login_screen.dart';
 import 'profile_section_header.dart';
 import 'settings_list_tile.dart';
-import '../../../core/database/database_helper.dart';
 import '../../../widgets/exercise_icon_widget.dart';
 import '../../onboarding/welcome_screen.dart';
 
@@ -154,15 +153,8 @@ class _ProfileContentViewState extends ConsumerState<ProfileContentView> {
     );
 
     if (confirmed == true && mounted) {
-      // Sign out of Firebase Auth to ensure residual sessions don't linger
-      await ref.read(authProvider.notifier).signOut();
-
-      // Clear Database
-      await DatabaseHelper.instance.clearAllData();
-      
-      // Clear SharedPreferences
-      final prefs = ref.read(sharedPreferencesProvider);
-      await prefs.clear();
+      // Clear online data on backend, local database, SharedPreferences, and sign out
+      await ref.read(authProvider.notifier).deleteAllUserData();
 
       if (!mounted) return;
 

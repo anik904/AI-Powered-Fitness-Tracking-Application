@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../repository/services/sync/sync_service.dart';
 import '../database/database_helper.dart';
+import '../providers/shared_preferences_provider.dart';
 import 'auth_provider.dart';
 
 class ExerciseCardData {
@@ -27,7 +28,7 @@ class ExerciseCardData {
 class ExerciseGoal {
   final ExerciseCardData cardData;
   final int target;
-  final String unit; // 'Reps' or 'min'
+  final String unit;
   final WorkoutMatchOption matchOption;
   ExerciseGoal({
     required this.cardData,
@@ -106,25 +107,46 @@ class ExerciseGoalNotifier extends Notifier<List<ExerciseGoal>> {
     return initial;
   }
 
+  String _prefKeyForType(ExerciseType type) {
+    if (type == ExerciseType.jumpingJack) return 'jumping_jack_goal';
+    return '${type.name}_goal';
+  }
+
   Future<void> reloadFromDb() async {
     final db = DatabaseHelper.instance;
     final goals = List<ExerciseGoal>.from(state);
+    final prefs = ref.read(sharedPreferencesProvider);
     
     for (int i = 0; i < goals.length; i++) {
-      final goalData = await db.getGoal(goals[i].cardData.routeType.name);
+      final routeType = goals[i].cardData.routeType;
+      final typeName = routeType.name;
+      final goalData = await db.getGoal(typeName);
+
+      int target;
+      String unit = 'Reps';
+
       if (goalData != null) {
-        final target = goalData['target'] as int;
-        final unit = (goalData['unit'] as String?) ?? 'Reps';
-        goals[i] = goals[i].copyWith(
-          target: target,
-          unit: unit,
-          matchOption: WorkoutMatchOption(
-            reps: target,
-            minutes: 0,
-            unit: unit,
-          ),
-        );
+        target = goalData['target'] as int;
+        unit = (goalData['unit'] as String?) ?? 'Reps';
+      } else {
+        final prefKey = _prefKeyForType(routeType);
+        target = prefs.getInt(prefKey) ?? goals[i].target;
+        await db.saveGoal(typeName, target, unit);
       }
+
+      // Keep SharedPreferences in sync
+      final prefKey = _prefKeyForType(routeType);
+      await prefs.setInt(prefKey, target);
+
+      goals[i] = goals[i].copyWith(
+        target: target,
+        unit: unit,
+        matchOption: WorkoutMatchOption(
+          reps: target,
+          minutes: 0,
+          unit: unit,
+        ),
+      );
     }
     state = goals;
   }
@@ -150,14 +172,19 @@ class ExerciseGoalNotifier extends Notifier<List<ExerciseGoal>> {
         if (i == index) newGoal else state[i],
     ];
 
-    // 1. Save to DB locally
+    // Save to DB locally
     DatabaseHelper.instance.saveGoal(
       newGoal.cardData.routeType.name,
       newGoal.target,
       newGoal.unit,
     );
 
-    // 2. Non-blocking background sync
+    // Also update SharedPreferences
+    final prefs = ref.read(sharedPreferencesProvider);
+    final prefKey = _prefKeyForType(newGoal.cardData.routeType);
+    prefs.setInt(prefKey, newGoal.target);
+
+    // Non-blocking background sync
     final user = ref.read(authProvider).user;
     if (user != null) {
       _syncService.syncGoalInBackground(

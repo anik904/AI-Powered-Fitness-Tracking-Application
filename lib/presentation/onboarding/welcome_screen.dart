@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app.dart';
-import '../../core/provider/auth_provider.dart';
 import '../../core/providers/shared_preferences_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../profile/auth/login_screen.dart';
@@ -9,24 +8,6 @@ import 'onboarding_screen.dart';
 
 class WelcomeScreen extends ConsumerWidget {
   const WelcomeScreen({super.key});
-
-  Future<void> _continueAsGuest(BuildContext context, WidgetRef ref) async {
-    final prefs = ref.read(sharedPreferencesProvider);
-    await prefs.setBool('has_completed_onboarding', true);
-    await prefs.setBool('is_guest_mode', true);
-    await prefs.remove('user_email');
-    await prefs.remove('onboarding_name');
-    await prefs.setString('user_name', 'Guest User');
-
-    // Ensure any previous Firebase auth session is cleared
-    await ref.read(authProvider.notifier).signOut();
-
-    if (context.mounted) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const AppScreen()),
-      );
-    }
-  }
 
   Future<void> _openSignIn(BuildContext context, WidgetRef ref) async {
     final result = await Navigator.of(context).push<bool>(
@@ -53,36 +34,22 @@ class WelcomeScreen extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
           child: Column(
             children: [
-              // Top Bar with Skip Action
-              Align(
-                alignment: Alignment.topRight,
-                child: TextButton(
-                  onPressed: () => _continueAsGuest(context, ref),
-                  child: Text(
-                    'Skip',
-                    style: TextStyle(
-                      color: AppTheme.textSecondary,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-
               const Spacer(),
 
               // Hero Branding
-              Container(
-                width: 120,
-                height: 120,
-                decoration: BoxDecoration(
-                  color: AppTheme.accentColor.withValues(alpha: 0.15),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.fitness_center_rounded,
-                  size: 64,
-                  color: AppTheme.accentColor,
+              Center(
+                child: Container(
+                  width: 120,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    color: AppTheme.accentColor.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.fitness_center_rounded,
+                    size: 64,
+                    color: AppTheme.accentColor,
+                  ),
                 ),
               ),
               const SizedBox(height: 32),
@@ -114,11 +81,7 @@ class WelcomeScreen extends ConsumerWidget {
                 width: double.infinity,
                 height: 54,
                 child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const OnboardingScreen()),
-                    );
-                  },
+                  onPressed: () => _openSignIn(context, ref),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.accentColor,
                     foregroundColor: Colors.white,
@@ -128,7 +91,7 @@ class WelcomeScreen extends ConsumerWidget {
                     elevation: 0,
                   ),
                   child: const Text(
-                    'Get Started',
+                    'Sign In',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -139,7 +102,11 @@ class WelcomeScreen extends ConsumerWidget {
                 width: double.infinity,
                 height: 54,
                 child: OutlinedButton(
-                  onPressed: () => _openSignIn(context, ref),
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+                    );
+                  },
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppTheme.textPrimary,
                     side: BorderSide(color: AppTheme.textSecondary.withValues(alpha: 0.3)),
@@ -148,29 +115,11 @@ class WelcomeScreen extends ConsumerWidget {
                     ),
                   ),
                   child: const Text(
-                    'I already have an account / Sign In',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: TextButton.icon(
-                  onPressed: () => _continueAsGuest(context, ref),
-                  icon: const Icon(Icons.person_outline, size: 20),
-                  label: const Text(
                     'Continue as Guest',
                     style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                   ),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppTheme.textSecondary,
-                  ),
                 ),
               ),
-              const SizedBox(height: 8),
             ],
           ),
         ),
