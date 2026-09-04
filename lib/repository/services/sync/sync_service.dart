@@ -154,11 +154,11 @@ class SyncService {
       final sessions = response.workouts.map((w) {
         return WorkoutSession(
           exerciseType: ExerciseType.values.firstWhere(
-            (e) => e.name == w.exerciseType,
+            (e) => e.name.toLowerCase() == w.exerciseType.toLowerCase(),
             orElse: () => ExerciseType.pushup,
           ),
           reps: w.reps,
-          timestamp: w.timestamp,
+          timestamp: w.timestamp.toLocal(),
           clientId: w.clientId,
         );
       }).toList();

@@ -12,11 +12,11 @@ class ExerciseDistribution extends ConsumerWidget {
   Color _getExerciseColor(ExerciseType type) {
     switch (type) {
       case ExerciseType.pushup:
-        return const Color(0xFF84CC16); // Lime Green
+        return const Color(0xFF84CC16);
       case ExerciseType.squat:
-        return const Color(0xFF06B6D4); // Cyan
+        return const Color(0xFF06B6D4);
       case ExerciseType.jumpingJack:
-        return const Color(0xFFA855F7); // Purple
+        return const Color(0xFFA855F7);
     }
   }
 
@@ -163,7 +163,6 @@ class _DonutChartPainter extends CustomPainter {
     final radius = (size.width - 16) / 2;
     const strokeWidth = 14.0;
 
-    // Background track
     final bgPaint = Paint()
       ..color = Colors.grey.withValues(alpha: 0.15)
       ..style = PaintingStyle.stroke

@@ -40,6 +40,7 @@ class _ExerciseScreenState extends ConsumerState<ExerciseScreen> {
   bool _providerInitialized = false;
 
   bool _completionShown = false;
+  bool _isSessionSaved = false;
 
   double _floatingTopRowTop(BuildContext context) {
     return MediaQuery.of(context).viewPadding.top + _topOverlayMargin;
@@ -356,7 +357,12 @@ class _ExerciseScreenState extends ConsumerState<ExerciseScreen> {
   }
 
   void _onExerciseFinished() {
+    if (_isSessionSaved) return;
+    _isSessionSaved = true;
+    _completionShown = true;
+
     final state = ref.read(exerciseProvider);
+    if (state.repCount <= 0) return;
     
     final session = WorkoutSession(
       exerciseType: widget.exerciseType,

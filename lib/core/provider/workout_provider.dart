@@ -20,11 +20,9 @@ class WorkoutNotifier extends Notifier<List<WorkoutSession>> {
   }
 
   Future<void> addWorkout(WorkoutSession session) async {
-    // 1. Insert locally first (offline-first)
     await DatabaseHelper.instance.insertWorkout(session);
     await loadRecentWorkouts();
 
-    // 2. Fire background sync non-blockingly
     final user = ref.read(authProvider).user;
     if (user != null) {
       _syncService.syncWorkoutInBackground(
@@ -35,11 +33,11 @@ class WorkoutNotifier extends Notifier<List<WorkoutSession>> {
   }
 
   Future<void> clearAllWorkouts({DateTime? since}) async {
-    // 1. Clear locally first
+    // Clear locally first
     await DatabaseHelper.instance.clearWorkouts(since: since);
     await loadRecentWorkouts();
 
-    // 2. Fire background sync non-blockingly
+    // Fire background sync non-blockingly
     final user = ref.read(authProvider).user;
     if (user != null) {
       _syncService.syncClearWorkoutsInBackground(user.uid, since: since);

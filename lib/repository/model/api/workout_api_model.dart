@@ -36,11 +36,11 @@ class WorkoutResponseModel {
 
   factory WorkoutResponseModel.fromJson(Map<String, dynamic> json) {
     return WorkoutResponseModel(
-      id: json['id'] as int,
-      exerciseType: json['exercise_type'] as String,
-      reps: json['reps'] as int,
-      timestamp: DateTime.parse(json['timestamp'] as String),
-      clientId: json['client_id'] as String?,
+      id: json['id'] as int? ?? 0,
+      exerciseType: json['exercise_type'] as String? ?? json['exerciseType'] as String? ?? '',
+      reps: json['reps'] as int? ?? 0,
+      timestamp: DateTime.tryParse(json['timestamp'] as String? ?? '') ?? DateTime.now(),
+      clientId: json['client_id'] as String? ?? json['clientId'] as String?,
     );
   }
 

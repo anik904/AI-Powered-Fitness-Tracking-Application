@@ -80,7 +80,6 @@ class ChallengeNotifier extends Notifier<ChallengeState> {
       startDate: null,
     );
 
-    // Background sync
     final user = ref.read(authProvider).user;
     if (user != null) {
       _syncService.syncChallengeResetInBackground(user.uid);
