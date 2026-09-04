@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:developer' as developer;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../repository/model/exercise_type.dart';
 import '../../repository/services/sync/sync_service.dart';
 import '../database/database_helper.dart';
 import '../providers/shared_preferences_provider.dart';
@@ -12,11 +11,13 @@ import 'workout_provider.dart';
 
 class UserAuthState {
   final User? user;
+  final String? customDisplayName;
   final bool isLoading;
   final String? error;
 
   const UserAuthState({
     this.user,
+    this.customDisplayName,
     this.isLoading = false,
     this.error,
   });
@@ -24,16 +25,35 @@ class UserAuthState {
   bool get isSignedIn => user != null;
   String? get uid => user?.uid;
   String? get email => user?.email;
-  String get displayName => user?.displayName ?? email?.split('@').first ?? 'User';
+  String get displayName {
+    if (customDisplayName != null &&
+        customDisplayName!.trim().isNotEmpty &&
+        customDisplayName != 'Guest User' &&
+        customDisplayName != 'User') {
+      return customDisplayName!.trim();
+    }
+    if (user?.displayName != null &&
+        user!.displayName!.trim().isNotEmpty &&
+        user!.displayName != 'Guest User' &&
+        user!.displayName != 'User') {
+      return user!.displayName!.trim();
+    }
+    if (email != null && email!.isNotEmpty) {
+      return email!.split('@').first;
+    }
+    return 'User';
+  }
 
   UserAuthState copyWith({
     User? user,
+    String? customDisplayName,
     bool? isLoading,
     String? error,
     bool clearUser = false,
   }) {
     return UserAuthState(
       user: clearUser ? null : (user ?? this.user),
+      customDisplayName: clearUser ? null : (customDisplayName ?? this.customDisplayName),
       isLoading: isLoading ?? this.isLoading,
       error: error,
     );
@@ -94,103 +114,80 @@ class AuthNotifier extends Notifier<UserAuthState> {
     }
   }
 
-  Future<void> _onUserAuthenticated(User user) async {
-    // Save user profile info for display
+  Future<void> _onUserAuthenticated(User user, {bool isFreshLogin = false}) async {
+    final prefs = ref.read(sharedPreferencesProvider);
+    await prefs.setBool('is_guest_mode', false);
+    await prefs.setBool('has_completed_onboarding', true);
+
+    // 1. Fetch user profile from backend to get saved display name if available
+    String? backendName;
     try {
-      final prefs = ref.read(sharedPreferencesProvider);
-      await prefs.setBool('is_guest_mode', false);
-
-      // Fetch user profile from backend to get saved display name if available
-      String? backendName;
-      try {
-        final backendUser = await _syncService.getBackendUser(user.uid);
-        if (backendUser != null && backendUser.displayName != null && backendUser.displayName!.trim().isNotEmpty) {
-          backendName = backendUser.displayName!.trim();
-        }
-      } catch (_) {}
-
-      final onboardingName = prefs.getString('onboarding_name');
-      final existingName = prefs.getString('user_name');
-      
-      final String resolvedName;
-      if (backendName != null && backendName.isNotEmpty) {
-        resolvedName = backendName;
-      } else if (user.displayName != null && user.displayName!.trim().isNotEmpty) {
-        resolvedName = user.displayName!.trim();
-      } else if (onboardingName != null && onboardingName.trim().isNotEmpty && onboardingName != 'Guest User' && onboardingName != 'User') {
-        resolvedName = onboardingName.trim();
-      } else if (existingName != null && existingName.trim().isNotEmpty && existingName != 'User' && existingName != 'Guest User') {
-        resolvedName = existingName.trim();
-      } else {
-        resolvedName = user.email?.split('@').first ?? 'User';
+      final backendUser = await _syncService.getBackendUser(user.uid);
+      if (backendUser != null &&
+          backendUser.displayName != null &&
+          backendUser.displayName!.trim().isNotEmpty &&
+          backendUser.displayName!.trim() != 'Guest User' &&
+          backendUser.displayName!.trim() != 'User') {
+        backendName = backendUser.displayName!.trim();
       }
+    } catch (_) {}
 
-      await prefs.setString('user_name', resolvedName);
-      await prefs.setString('user_email', user.email ?? '');
-
-      // Ensure state is updated so listeners react immediately
-      state = state.copyWith(user: user);
-    } catch (e) {
-      developer.log('Error saving user profile info: $e', name: 'AuthNotifier');
+    final String resolvedName;
+    if (backendName != null && backendName.isNotEmpty) {
+      resolvedName = backendName;
+    } else if (user.displayName != null &&
+        user.displayName!.trim().isNotEmpty &&
+        user.displayName!.trim() != 'Guest User' &&
+        user.displayName!.trim() != 'User') {
+      resolvedName = user.displayName!.trim();
+    } else {
+      resolvedName = user.email?.split('@').first ?? 'User';
     }
 
-    // Register on backend in background
-    try {
-      final prefs = ref.read(sharedPreferencesProvider);
-      final displayName = prefs.getString('user_name') ?? user.displayName;
+    await prefs.setString('user_name', resolvedName);
+    await prefs.setString('user_email', user.email ?? '');
+    await prefs.remove('onboarding_name');
+    state = state.copyWith(user: user, customDisplayName: resolvedName);
 
+    try {
       await _syncService.registerUserOnBackend(
         firebaseUid: user.uid,
         email: user.email ?? '',
-        displayName: displayName,
+        displayName: resolvedName,
       );
     } catch (e) {
       developer.log('Post-auth backend registration error: $e', name: 'AuthNotifier');
     }
 
-    // Ensure local guest goals exist in database and upload guest state to cloud
-    try {
-      final prefs = ref.read(sharedPreferencesProvider);
-      final db = DatabaseHelper.instance;
-
-      // Ensure all goals from state or SharedPreferences are saved in DB
-      final currentGoals = ref.read(exerciseGoalProvider);
-      for (final goal in currentGoals) {
-        final existingGoal = await db.getGoal(goal.cardData.routeType.name);
-        if (existingGoal == null) {
-          final prefKey = goal.cardData.routeType == ExerciseType.jumpingJack
-              ? 'jumping_jack_goal'
-              : '${goal.cardData.routeType.name}_goal';
-          final target = prefs.getInt(prefKey) ?? goal.target;
-          await db.saveGoal(goal.cardData.routeType.name, target, goal.unit);
-        }
+    // Only upload local state if NOT a fresh login from guest mode
+    if (!isFreshLogin) {
+      try {
+        await _syncService.uploadLocalState(
+          user.uid,
+          email: user.email,
+          displayName: resolvedName,
+        );
+      } catch (e) {
+        developer.log('Post-auth upload local state error: $e', name: 'AuthNotifier');
       }
-
-      // Upload local guest data (goals, workouts, challenge state) to the cloud for this user
-      final displayName = prefs.getString('user_name') ?? user.displayName;
-      await _syncService.uploadLocalState(
-        user.uid,
-        email: user.email,
-        displayName: displayName,
-      );
-    } catch (e) {
-      developer.log('Post-auth upload local state error: $e', name: 'AuthNotifier');
     }
 
-    // Download remote state and merge into local database
     try {
       final downloadRes = await _syncService.downloadRemoteState(
         user.uid,
-        preserveLocalConflicts: true,
+        preserveLocalConflicts: false, // Online data is authoritative
       );
       if (downloadRes != null) {
-        developer.log('Successfully synced ${downloadRes.workouts.length} workouts and ${downloadRes.goals.length} goals from cloud for user ${user.uid}', name: 'AuthNotifier');
+        developer.log(
+          'Successfully synced ${downloadRes.workouts.length} workouts and ${downloadRes.goals.length} goals from cloud for user ${user.uid}',
+          name: 'AuthNotifier',
+        );
       }
     } catch (e) {
       developer.log('Post-auth download remote state error: $e', name: 'AuthNotifier');
     }
 
-    // Refresh local providers with newly synced data
+    // 3. Refresh local providers with newly downloaded online data
     try {
       await ref.read(workoutProvider.notifier).loadRecentWorkouts();
       await ref.read(exerciseGoalProvider.notifier).reloadFromDb();
@@ -204,8 +201,7 @@ class AuthNotifier extends Notifier<UserAuthState> {
     state = state.copyWith(isLoading: true, error: null);
     try {
       final prefs = ref.read(sharedPreferencesProvider);
-      await prefs.setBool('is_guest_mode', false);
-      await prefs.setBool('has_completed_onboarding', true);
+      final wasGuest = (prefs.getBool('is_guest_mode') ?? true);
 
       final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email,
@@ -213,7 +209,24 @@ class AuthNotifier extends Notifier<UserAuthState> {
       );
       final user = credential.user;
       if (user != null) {
-        await _onUserAuthenticated(user);
+        if (wasGuest) {
+          // Clear all guest workouts, goals, challenge state, and guest name so they NEVER mix with online user data
+          await DatabaseHelper.instance.clearAllData();
+          await prefs.remove('onboarding_name');
+          await prefs.remove('user_name');
+          await prefs.remove('challenge_started');
+          await prefs.remove('challenge_start_date');
+          await prefs.remove('pushup_goal');
+          await prefs.remove('squat_goal');
+          await prefs.remove('jumping_jack_goal');
+          await prefs.remove('user_goal');
+          await prefs.remove('last_sync_timestamp');
+        }
+
+        await prefs.setBool('is_guest_mode', false);
+        await prefs.setBool('has_completed_onboarding', true);
+
+        await _onUserAuthenticated(user, isFreshLogin: wasGuest);
       }
       state = state.copyWith(user: user, isLoading: false);
       return true;
@@ -229,8 +242,23 @@ class AuthNotifier extends Notifier<UserAuthState> {
   Future<bool> register({required String email, required String password, String? displayName}) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      // Clear guest mode first
       final prefs = ref.read(sharedPreferencesProvider);
+      final wasGuest = (prefs.getBool('is_guest_mode') ?? true);
+
+      if (wasGuest) {
+        // Clear all guest data so newly registered user starts fresh
+        await DatabaseHelper.instance.clearAllData();
+        await prefs.remove('onboarding_name');
+        await prefs.remove('user_name');
+        await prefs.remove('challenge_started');
+        await prefs.remove('challenge_start_date');
+        await prefs.remove('pushup_goal');
+        await prefs.remove('squat_goal');
+        await prefs.remove('jumping_jack_goal');
+        await prefs.remove('user_goal');
+        await prefs.remove('last_sync_timestamp');
+      }
+
       await prefs.setBool('is_guest_mode', false);
       await prefs.setBool('has_completed_onboarding', true);
 
@@ -243,7 +271,7 @@ class AuthNotifier extends Notifier<UserAuthState> {
       }
       final user = credential.user;
       if (user != null) {
-        await _onUserAuthenticated(user);
+        await _onUserAuthenticated(user, isFreshLogin: true);
       }
       state = state.copyWith(user: user, isLoading: false);
       return true;

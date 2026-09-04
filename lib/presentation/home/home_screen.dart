@@ -25,10 +25,10 @@ class HomeScreen extends ConsumerWidget {
 
     final String userName;
     if (authState.isSignedIn) {
-      if (savedName != null && savedName.trim().isNotEmpty && savedName != 'Guest User' && savedName != 'User') {
+      if (authState.displayName.isNotEmpty && authState.displayName != 'Guest User' && authState.displayName != 'User') {
+        userName = authState.displayName;
+      } else if (savedName != null && savedName.trim().isNotEmpty && savedName != 'Guest User' && savedName != 'User') {
         userName = savedName.trim();
-      } else if (onboardingName != null && onboardingName.trim().isNotEmpty && onboardingName != 'Guest User' && onboardingName != 'User') {
-        userName = onboardingName.trim();
       } else {
         userName = authState.displayName;
       }

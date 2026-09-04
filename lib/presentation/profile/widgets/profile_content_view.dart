@@ -243,8 +243,8 @@ class _ProfileContentViewState extends ConsumerState<ProfileContentView> {
     final onboardingName = prefs.getString('onboarding_name');
     final savedName = prefs.getString('user_name');
     final userName = widget.isSignedIn
-        ? ((onboardingName != null && onboardingName.trim().isNotEmpty && onboardingName != 'Guest User')
-            ? onboardingName.trim()
+        ? ((authState.displayName.isNotEmpty && authState.displayName != 'Guest User' && authState.displayName != 'User')
+            ? authState.displayName
             : ((savedName != null && savedName.trim().isNotEmpty && savedName != 'User' && savedName != 'Guest User')
                 ? savedName.trim()
                 : (authState.displayName)))
