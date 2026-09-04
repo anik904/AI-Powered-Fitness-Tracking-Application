@@ -14,6 +14,7 @@ import 'profile_section_header.dart';
 import 'settings_list_tile.dart';
 import '../../../widgets/exercise_icon_widget.dart';
 import '../../onboarding/welcome_screen.dart';
+import '../../../app.dart';
 
 class ProfileContentView extends ConsumerStatefulWidget {
   final bool isSignedIn;
@@ -153,16 +154,31 @@ class _ProfileContentViewState extends ConsumerState<ProfileContentView> {
     );
 
     if (confirmed == true && mounted) {
-      // Clear online data on backend, local database, SharedPreferences, and sign out
+      final authState = ref.read(authProvider);
+      final prefs = ref.read(sharedPreferencesProvider);
+      final isGuest = !authState.isSignedIn || (prefs.getBool('is_guest_mode') ?? false);
+
+      // Clear data
       await ref.read(authProvider.notifier).deleteAllUserData();
 
       if (!mounted) return;
 
-      // Navigate to welcome screen
-      Navigator.of(this.context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const WelcomeScreen()),
-        (route) => false,
-      );
+      if (!isGuest) {
+        // Logged-in user: keep session and navigate to home screen
+        Navigator.of(this.context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const AppScreen()),
+          (route) => false,
+        );
+        ScaffoldMessenger.of(this.context).showSnackBar(
+          const SnackBar(content: Text('All workout and goal data deleted.')),
+        );
+      } else {
+        // Guest user: navigate to initial welcome screen
+        Navigator.of(this.context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+          (route) => false,
+        );
+      }
     }
   }
 

@@ -320,18 +320,37 @@ class AuthNotifier extends Notifier<UserAuthState> {
   Future<void> deleteAllUserData() async {
     final currentUser = FirebaseAuth.instance.currentUser;
     final uid = currentUser?.uid;
+    final prefs = ref.read(sharedPreferencesProvider);
+    final isGuest = (currentUser == null) || (prefs.getBool('is_guest_mode') ?? false);
 
-    if (uid != null) {
+    if (uid != null && !isGuest) {
       // Clear online workouts and challenge data on backend
       try {
         await _syncService.clearOnlineUserData(uid);
       } catch (e) {
         developer.log('Clear online data error: $e', name: 'AuthNotifier');
       }
-    }
 
-    // Sign out, wipe local database & preferences, and reset state
-    await signOut();
+      // Clear local database (workouts and goals)
+      await DatabaseHelper.instance.clearAllData();
+
+      // Clear fitness-related SharedPreferences while keeping user session & onboarding status
+      await prefs.remove('challenge_started');
+      await prefs.remove('challenge_start_date');
+      await prefs.remove('last_sync_timestamp');
+      await prefs.remove('pushup_goal');
+      await prefs.remove('squat_goal');
+      await prefs.remove('jumping_jack_goal');
+      await prefs.remove('user_goal');
+
+      // Reload all providers to clean state
+      await ref.read(workoutProvider.notifier).loadRecentWorkouts();
+      await ref.read(exerciseGoalProvider.notifier).reloadFromDb();
+      ref.read(challengeProvider.notifier).reloadFromPrefs();
+    } else {
+      // Guest mode: wipe all local data, preferences, reset onboarding state, and signOut
+      await signOut();
+    }
   }
 
   Future<bool> deleteAccount() async {
