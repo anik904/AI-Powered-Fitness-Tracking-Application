@@ -35,7 +35,6 @@ class _ExerciseInstructionScreenState extends State<ExerciseInstructionScreen>
   void initState() {
     super.initState();
 
-    // Force dark status bar
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
         statusBarBrightness: Brightness.light,

@@ -158,13 +158,12 @@ class _ProfileContentViewState extends ConsumerState<ProfileContentView> {
       final prefs = ref.read(sharedPreferencesProvider);
       final isGuest = !authState.isSignedIn || (prefs.getBool('is_guest_mode') ?? false);
 
-      // Clear data
       await ref.read(authProvider.notifier).deleteAllUserData();
 
       if (!mounted) return;
 
       if (!isGuest) {
-        // Logged-in user: keep session and navigate to home screen
+        // Logged-in user - keep session and navigate to home screen
         Navigator.of(this.context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const AppScreen()),
           (route) => false,
@@ -173,7 +172,7 @@ class _ProfileContentViewState extends ConsumerState<ProfileContentView> {
           const SnackBar(content: Text('All workout and goal data deleted.')),
         );
       } else {
-        // Guest user: navigate to initial welcome screen
+        // Guest user - navigate to initial welcome screen
         Navigator.of(this.context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const WelcomeScreen()),
           (route) => false,
@@ -240,7 +239,7 @@ class _ProfileContentViewState extends ConsumerState<ProfileContentView> {
     final squatGoal = _goalForType(goals, ExerciseType.squat, prefs.getInt('squat_goal') ?? 20);
     final jumpingJackGoal = _goalForType(goals, ExerciseType.jumpingJack, prefs.getInt('jumping_jack_goal') ?? 50);
 
-    final onboardingName = prefs.getString('onboarding_name');
+    prefs.getString('onboarding_name');
     final savedName = prefs.getString('user_name');
     final userName = widget.isSignedIn
         ? ((authState.displayName.isNotEmpty && authState.displayName != 'Guest User' && authState.displayName != 'User')
@@ -270,7 +269,7 @@ class _ProfileContentViewState extends ConsumerState<ProfileContentView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-          // 1. Profile / Guest Card
+          // Profile - Guest Card
           if (widget.isSignedIn)
             CustomCard(
               child: Row(
@@ -351,7 +350,7 @@ class _ProfileContentViewState extends ConsumerState<ProfileContentView> {
 
           const SizedBox(height: 16),
 
-          // 2. Data Synchronization
+          // Data Synchronization
           const ProfileSectionHeader(title: 'Data Synchronization'),
           CustomCard(
             padding: const EdgeInsets.symmetric(vertical: 8),
@@ -394,7 +393,7 @@ class _ProfileContentViewState extends ConsumerState<ProfileContentView> {
 
           const SizedBox(height: 16),
 
-          // 3. Fitness Goals
+          // workout Goals
           const ProfileSectionHeader(title: 'Fitness Goals'),
           CustomCard(
             padding: const EdgeInsets.symmetric(vertical: 8),
@@ -457,7 +456,7 @@ class _ProfileContentViewState extends ConsumerState<ProfileContentView> {
 
           const SizedBox(height: 16),
 
-          // 4. Security
+          // Security
           const ProfileSectionHeader(title: 'Security'),
           CustomCard(
             padding: const EdgeInsets.symmetric(vertical: 8),
@@ -470,7 +469,7 @@ class _ProfileContentViewState extends ConsumerState<ProfileContentView> {
 
           const SizedBox(height: 16),
 
-          // 5. Data Management
+          // Data Management
           const ProfileSectionHeader(title: 'Data Management'),
           CustomCard(
             padding: const EdgeInsets.symmetric(vertical: 8),
@@ -485,7 +484,7 @@ class _ProfileContentViewState extends ConsumerState<ProfileContentView> {
 
           const SizedBox(height: 16),
 
-          // 6. Information
+          // Information
           const ProfileSectionHeader(title: 'Information'),
           CustomCard(
             padding: const EdgeInsets.symmetric(vertical: 8),
@@ -512,7 +511,7 @@ class _ProfileContentViewState extends ConsumerState<ProfileContentView> {
 
           const SizedBox(height: 32),
 
-          // 7. Sign Out (Only if signed in)
+          // Sign Out
           if (widget.isSignedIn) ...[
             CustomButton(
               text: 'Sign Out',

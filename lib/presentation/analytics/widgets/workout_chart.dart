@@ -71,7 +71,6 @@ class WorkoutChart extends ConsumerWidget {
   }) {
     final colorScheme = Theme.of(context).colorScheme;
     final double maxBarHeight = 120.0;
-    // Ensure that even small non-zero values have at least a minimal bar height
     final double calculatedHeight = heightRatio > 0
         ? (maxBarHeight * heightRatio).clamp(8.0, maxBarHeight)
         : 4.0;

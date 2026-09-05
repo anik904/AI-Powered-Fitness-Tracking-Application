@@ -23,11 +23,11 @@ class JumpingJackValidationService {
     // Person must be standing — hips above ankles
     final avgHipY    = (leftHip!.y + rightHip!.y) / 2;
     final avgAnkleY  = (leftAnkle!.y + rightAnkle!.y) / 2;
-    final isStanding = avgAnkleY > avgHipY; // y increases downward in MLKit
+    final isStanding = avgAnkleY > avgHipY;
 
     // Full body must be in frame — basic sanity check via spread of key points
     final bodyHeight = avgAnkleY - (leftShoulder!.y + rightShoulder!.y) / 2;
-    final isInFrame  = bodyHeight > 0.2; // at least 20% of normalised frame
+    final isInFrame  = bodyHeight > 0.2;
 
     return isStanding && isInFrame;
   }

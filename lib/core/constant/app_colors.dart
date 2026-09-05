@@ -9,7 +9,7 @@ class AppColors {
   static const warning = Color(0xFFF59E0B);
   static const textPrimary = Color(0xFFFFFFFF);
   static const textSecondary = Color(0xFF9CA3AF);
-  static const accent = Color(0xFFD4FF00); // Lime green from screenshot
+  static const accent = Color(0xFFD4FF00);
   static const overlayLine = Color(0xFF4F46E5);
   static const overlayDot = Color(0xFF818CF8);
 }

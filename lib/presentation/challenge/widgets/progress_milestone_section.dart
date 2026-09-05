@@ -12,35 +12,35 @@ class ProgressMilestoneSection extends ConsumerWidget {
       name: 'Kickoff',
       badge: 'Day 1',
       icon: Icons.flag_rounded,
-      color: Color(0xFF3B82F6), // Blue
+      color: Color(0xFF3B82F6),
     ),
     _MilestoneData(
       day: 7,
       name: '1 Week',
       badge: 'Day 7',
       icon: Icons.shield_rounded,
-      color: Color(0xFF10B981), // Emerald
+      color: Color(0xFF10B981),
     ),
     _MilestoneData(
       day: 14,
       name: 'Halfway',
       badge: 'Day 14',
       icon: Icons.bolt_rounded,
-      color: Color(0xFFF59E0B), // Amber
+      color: Color(0xFFF59E0B),
     ),
     _MilestoneData(
       day: 21,
       name: '3 Weeks',
       badge: 'Day 21',
       icon: Icons.diamond_rounded,
-      color: Color(0xFF8B5CF6), // Purple
+      color: Color(0xFF8B5CF6),
     ),
     _MilestoneData(
       day: 30,
       name: 'Champion',
       badge: 'Day 30',
       icon: Icons.emoji_events_rounded,
-      color: Color(0xFFEC4899), // Pink / Gold
+      color: Color(0xFFEC4899),
     ),
   ];
 

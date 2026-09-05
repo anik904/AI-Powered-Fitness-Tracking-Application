@@ -21,7 +21,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
   @override
   void initState() {
     super.initState();
-    // Pre-fill name if already entered during onboarding or previously set
+    // Pre-fill name if already entered during onboarding
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final prefs = ref.read(sharedPreferencesProvider);
       final existingName = prefs.getString('onboarding_name') ?? prefs.getString('user_name');

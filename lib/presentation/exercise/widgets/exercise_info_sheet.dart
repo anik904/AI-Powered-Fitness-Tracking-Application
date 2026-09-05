@@ -4,7 +4,6 @@ import 'package:ai_fitness_tracker/widgets/exercise_icon_widget.dart';
 import 'package:flutter/material.dart';
 
 
-/// Shows the exercise info as a bottom sheet.
 Future<void> showExerciseInfoSheet(BuildContext context, ExerciseType exerciseType, ExerciseState state) async {
   await showModalBottomSheet(
     context: context,
@@ -36,7 +35,6 @@ Future<void> showExerciseInfoSheet(BuildContext context, ExerciseType exerciseTy
             ],
           ),
           const SizedBox(height: 12),
-          // Removed targetReps display
           const SizedBox(height: 16),
           Text(
             exerciseType.instruction,

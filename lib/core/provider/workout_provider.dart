@@ -37,7 +37,7 @@ class WorkoutNotifier extends Notifier<List<WorkoutSession>> {
     await DatabaseHelper.instance.clearWorkouts(since: since);
     await loadRecentWorkouts();
 
-    // Fire background sync non-blockingly
+    // Fire background sync
     final user = ref.read(authProvider).user;
     if (user != null) {
       _syncService.syncClearWorkoutsInBackground(user.uid, since: since);

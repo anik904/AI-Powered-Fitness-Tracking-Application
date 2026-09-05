@@ -21,7 +21,7 @@ class HomeScreen extends ConsumerWidget {
     final authState = ref.watch(authProvider);
     final prefs = ref.watch(sharedPreferencesProvider);
     final savedName = prefs.getString('user_name');
-    final onboardingName = prefs.getString('onboarding_name');
+    prefs.getString('onboarding_name');
 
     final String userName;
     if (authState.isSignedIn) {

@@ -7,7 +7,6 @@ enum JumpingJackPhase { closed, open }
 class JumpingJackCounterService extends BaseCounterService {
   int _repCount = 0;
 
-  // State machine — must visit CLOSED before counting OPEN
   JumpingJackPhase _phase = JumpingJackPhase.closed;
 
   final JumpingJackValidationService _validationService =
@@ -58,9 +57,9 @@ class JumpingJackCounterService extends BaseCounterService {
     final shoulderWidth = (leftShoulder!.x - rightShoulder!.x).abs();
     final feetSpread    = (leftAnkle!.x - rightAnkle!.x).abs();
 
-    // Arms: use shoulder Y as reference so torso tilt doesn't break it.
+    // Arms: use shoulder Y as reference
     // In OPEN position wrists go above shoulders.
-    // In CLOSED position wrists stay below shoulders (hanging at sides).
+    // In CLOSED position wrists stay below shoulders.
     final avgShoulderY = (leftShoulder.y + rightShoulder.y) / 2;
     final armsUp   = leftWrist!.y  < avgShoulderY &&
                      rightWrist!.y < avgShoulderY;

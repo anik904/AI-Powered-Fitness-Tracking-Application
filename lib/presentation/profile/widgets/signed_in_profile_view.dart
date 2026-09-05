@@ -20,7 +20,7 @@ class _SignedInProfileViewState extends State<SignedInProfileView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. Profile Card
+          // Profile Card
           Padding(
             padding: const EdgeInsets.all(24.0),
             child: Row(
@@ -57,7 +57,7 @@ class _SignedInProfileViewState extends State<SignedInProfileView> {
                 IconButton(
                   icon: const Icon(Icons.edit),
                   onPressed: () {
-                    // Edit profile action
+                   
                   },
                 ),
               ],
@@ -66,7 +66,7 @@ class _SignedInProfileViewState extends State<SignedInProfileView> {
 
           const Divider(height: 1),
 
-          // 2. Data Synchronization
+          // Data Synchronization
           const ProfileSectionHeader(title: 'Data Synchronization'),
           SettingsListTile(
             icon: Icons.sync,
@@ -87,7 +87,7 @@ class _SignedInProfileViewState extends State<SignedInProfileView> {
 
           const Divider(height: 32),
 
-          // 3. Fitness Goals
+          // Workout Goals
           const ProfileSectionHeader(title: 'Fitness Goals'),
           SettingsListTile(
             icon: Icons.fitness_center,
@@ -121,7 +121,7 @@ class _SignedInProfileViewState extends State<SignedInProfileView> {
 
           const Divider(height: 32),
 
-          // 4. Security
+          // Security
           const ProfileSectionHeader(title: 'Security'),
           SettingsListTile(
             icon: Icons.lock_reset,
@@ -131,7 +131,7 @@ class _SignedInProfileViewState extends State<SignedInProfileView> {
 
           const Divider(height: 32),
 
-          // 5. Data Management
+          // Data Management
           const ProfileSectionHeader(title: 'Data Management'),
           SettingsListTile(
             icon: Icons.cloud_download,
@@ -155,7 +155,7 @@ class _SignedInProfileViewState extends State<SignedInProfileView> {
 
           const Divider(height: 32),
 
-          // 6. Information
+          // Information
           const ProfileSectionHeader(title: 'Information'),
           SettingsListTile(
             icon: Icons.privacy_tip,
@@ -175,7 +175,7 @@ class _SignedInProfileViewState extends State<SignedInProfileView> {
 
           const SizedBox(height: 40),
 
-          // 7. Sign Out
+          // Sign Out
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
             child: ElevatedButton.icon(

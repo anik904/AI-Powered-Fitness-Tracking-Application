@@ -60,7 +60,7 @@ CREATE TABLE workouts (
       try {
         await db.execute('ALTER TABLE workouts ADD COLUMN clientId TEXT');
       } catch (_) {
-        // Column may already exist in some dev states
+        
       }
     }
   }
@@ -106,11 +106,9 @@ CREATE TABLE workouts (
     return await db.query('goals');
   }
 
-  // Workouts
   Future<int> insertWorkout(WorkoutSession session) async {
     final db = await instance.database;
 
-    // Check if duplicate exists by clientId
     if (session.clientId.isNotEmpty) {
       final existingByClient = await db.query(
         'workouts',
@@ -122,7 +120,6 @@ CREATE TABLE workouts (
       }
     }
 
-    // Check if duplicate exists by exerciseType, reps, and close timestamp (within 15s)
     final existingRows = await db.query(
       'workouts',
       where: 'exerciseType = ? AND reps = ?',
@@ -137,7 +134,6 @@ CREATE TABLE workouts (
       if (existingTime != null) {
         final diffSeconds = session.timestamp.toUtc().difference(existingTime.toUtc()).inSeconds.abs();
         if (diffSeconds <= 15) {
-          // Already recorded, update clientId if missing
           final existingId = row['id'] as int;
           if (row['clientId'] == null && session.clientId.isNotEmpty) {
             await db.update(
@@ -179,7 +175,7 @@ CREATE TABLE workouts (
         final existingClientId = existing['clientId'] as String?;
         final existingTimestamp = DateTime.tryParse(existingTimestampStr);
 
-        // Case 1: Matching non-empty clientId
+        // Matching non-empty clientId
         if (clientId != null &&
             clientId.isNotEmpty &&
             existingClientId != null &&
@@ -189,7 +185,7 @@ CREATE TABLE workouts (
           break;
         }
 
-        // Case 2: Same exercise, same reps, and timestamps within 15 seconds
+        // Same exercise, same reps, and timestamps within 15 seconds
         if (exerciseType == existingExercise && reps == existingReps) {
           if (timestampStr == existingTimestampStr) {
             isDuplicate = true;
@@ -274,7 +270,7 @@ CREATE TABLE workouts (
       bool alreadyExists = false;
 
       for (final existing in existingLocalWorkouts) {
-        // 1. Compare by clientId if present
+        // Compare by clientId if present
         if (workout.clientId.isNotEmpty &&
             existing.clientId.isNotEmpty &&
             workout.clientId == existing.clientId) {
@@ -282,7 +278,7 @@ CREATE TABLE workouts (
           break;
         }
 
-        // 2. Compare by exerciseType, reps, and timestamp proximity (within 15s)
+        // Compare by exerciseType, reps, and timestamp proximity (within 15s)
         if (workout.exerciseType == existing.exerciseType &&
             workout.reps == existing.reps) {
           final diff = workout.timestamp.toUtc().difference(existing.timestamp.toUtc()).inSeconds.abs();

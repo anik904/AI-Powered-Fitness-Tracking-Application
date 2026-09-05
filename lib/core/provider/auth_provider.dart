@@ -362,7 +362,6 @@ class AuthNotifier extends Notifier<UserAuthState> {
       // Clear local database (workouts and goals)
       await DatabaseHelper.instance.clearAllData();
 
-      // Clear fitness-related SharedPreferences while keeping user session & onboarding status
       await prefs.remove('challenge_started');
       await prefs.remove('challenge_start_date');
       await prefs.remove('last_sync_timestamp');
@@ -371,7 +370,6 @@ class AuthNotifier extends Notifier<UserAuthState> {
       await prefs.remove('jumping_jack_goal');
       await prefs.remove('user_goal');
 
-      // Reload all providers to clean state
       await ref.read(workoutProvider.notifier).loadRecentWorkouts();
       await ref.read(exerciseGoalProvider.notifier).reloadFromDb();
       ref.read(challengeProvider.notifier).reloadFromPrefs();
@@ -387,9 +385,7 @@ class AuthNotifier extends Notifier<UserAuthState> {
 
     final uid = currentUser.uid;
     try {
-      // Delete on backend
       await _syncService.deleteUserFromBackend(uid);
-      // Delete on Firebase
       await currentUser.delete();
       await DatabaseHelper.instance.clearAllData();
       final prefs = ref.read(sharedPreferencesProvider);

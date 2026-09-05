@@ -179,7 +179,7 @@ class ExerciseGoalNotifier extends Notifier<List<ExerciseGoal>> {
       newGoal.unit,
     );
 
-    // Also update SharedPreferences
+    // update SharedPreferences
     final prefs = ref.read(sharedPreferencesProvider);
     final prefKey = _prefKeyForType(newGoal.cardData.routeType);
     prefs.setInt(prefKey, newGoal.target);

@@ -1,10 +1,9 @@
-// Data class for WorkoutMatchOption
 class WorkoutMatchOption {
   const WorkoutMatchOption({required this.reps, required this.minutes, required this.unit});
 
-  final int reps; // number of reps or seconds depending on `unit`
-  final double minutes; // reward minutes
-  final String unit; // 'Reps' or 'sec'
+  final int reps;
+  final double minutes;
+  final String unit;
 
   String get label {
     final left = unit.toLowerCase() == 'sec' ? '$reps sec' : '$reps ${reps == 1 ? 'rep' : 'reps'}';

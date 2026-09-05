@@ -1,5 +1,6 @@
 import 'package:ai_fitness_tracker/repository/model/exercise_type.dart';
 import 'package:ai_fitness_tracker/repository/services/ml_services/jumping_jack_counter_service.dart';
+import 'package:ai_fitness_tracker/repository/services/ml_services/pushup_rep_counter_service.dart';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
 import 'base_counter_service.dart';
 import '../ml_services/squat_rep_counter_service.dart';
@@ -10,10 +11,11 @@ class RepCounterService {
 
   RepCounterService() {
     _counters = {
+      ExerciseType.pushup: PushupRepCounterService(),
       ExerciseType.squat: SquatRepCounterService(),
       ExerciseType.jumpingJack: JumpingJackCounterService(),
     };
-    _currentCounter = _counters[ExerciseType.squat]!;
+    _currentCounter = _counters[ExerciseType.pushup]!;
   }
 
   int get repCount => _currentCounter.repCount;

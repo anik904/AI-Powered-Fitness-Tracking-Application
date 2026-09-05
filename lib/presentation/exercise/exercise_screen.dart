@@ -36,7 +36,6 @@ class _ExerciseScreenState extends ConsumerState<ExerciseScreen> {
   static const double _topRowBottomPadding = 8;
   static const double _warningGapFromTopRow = 24;
 
-  // FIX 5: Guard so we never act on isComplete before initialize() has run.
   bool _providerInitialized = false;
 
   bool _completionShown = false;
@@ -137,7 +136,7 @@ class _ExerciseScreenState extends ConsumerState<ExerciseScreen> {
     return Column(
       children: [
         SizedBox(height: topBarHeight + 24),
-        // Camera card — rep counter lives INSIDE
+        // Camera card — rep counter
         Expanded(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 6),

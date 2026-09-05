@@ -28,7 +28,6 @@ class ApiConstants {
   static const String syncUploadEndpoint = '/sync/upload';
   static const String syncDownloadEndpoint = '/sync/download';
 
-  // Initialize active baseUrl on app startup
   static Future<void> initialize([SharedPreferences? prefs]) async {
     developer.log('Backend URL initialized: $baseUrl', name: 'ApiConstants');
   }
