@@ -5,24 +5,18 @@ import 'pushup_validation_service.dart';
 enum _PushupPhase { up, descending, bottom, ascending }
 
 class PushupRepCounterService extends BaseCounterService {
-  static const double _wristTopThreshold = 0.55;
-  static const double _wristBottomThreshold = 0.28;
-  static const double _wristRestoredThreshold = 0.50;
-  static const double _elbowFlareMin = 0.15;
+  static const double _wristTopThreshold = 1.40;
+  static const double _wristBottomThreshold = 0.80;
+  static const double _wristRestoredThreshold = 1.20;
+  static const double _elbowFlareMin = -2.0;
 
-  static const double _maxPlankDeviation = 0.45;
-  static const double _maxShoulderAsymmetry = 0.30;
 
   static const int _smoothingWindow = 4;
-  static const int _minBottomFrames = 2;
-  static const int _maxOutOfPosition = 15;
-  static const Duration _minRepDuration = Duration(milliseconds: 700);
+  static const int _minBottomFrames = 1;
 
   int _repCount = 0;
   _PushupPhase _phase = _PushupPhase.up;
-  DateTime? _lastRepTime;
   int _bottomFrameCount = 0;
-  int _outOfPositionFrames = 0;
   double _bottomPlankDev = 0.0;
   double _bottomAsymmetry = 0.0;
 
@@ -39,9 +33,7 @@ class PushupRepCounterService extends BaseCounterService {
   void reset() {
     _repCount = 0;
     _phase = _PushupPhase.up;
-    _lastRepTime = null;
     _bottomFrameCount = 0;
-    _outOfPositionFrames = 0;
     _bottomPlankDev = 0.0;
     _bottomAsymmetry = 0.0;
     _wristBuffer.clear();
@@ -54,9 +46,8 @@ class PushupRepCounterService extends BaseCounterService {
     if (poses.isEmpty) return false;
     final m = _validationService.getPushupMetrics(poses.first);
     if (m == null) return false;
-    // Valid setup = in position + wrists are low
-    return m.isInPushupPosition &&
-        m.wristShoulderYRatio >= _wristTopThreshold - 0.15;
+    // Valid setup = in position
+    return m.isInPushupPosition;
   }
 
   @override
@@ -70,16 +61,6 @@ class PushupRepCounterService extends BaseCounterService {
     _push(_flareBuffer, m.elbowFlareRatio);
     _push(_plankBuffer, m.plankDeviation.abs());
 
-    if (!m.isInPushupPosition) {
-      _outOfPositionFrames++;
-      if (_outOfPositionFrames >= _maxOutOfPosition) {
-        _softReset();
-      }
-      return _repCount;
-    }
-
-    _outOfPositionFrames = 0;
-
     final wrist = _smoothed(_wristBuffer);
     final flare = _smoothed(_flareBuffer);
     final plank = _smoothed(_plankBuffer);
@@ -88,12 +69,6 @@ class PushupRepCounterService extends BaseCounterService {
     return _repCount;
   }
 
-  void _softReset() {
-    _phase = _PushupPhase.up;
-    _bottomFrameCount = 0;
-    _bottomPlankDev = 0.0;
-    _bottomAsymmetry = 0.0;
-  }
 
   void _push(List<double> buf, double v) {
     buf.add(v);
@@ -144,22 +119,8 @@ class PushupRepCounterService extends BaseCounterService {
 
       case _PushupPhase.ascending:
         if (wrist >= _wristRestoredThreshold) {
-          // Back at top — count if form was acceptable
-          final formOk =
-              _bottomPlankDev <= _maxPlankDeviation &&
-              _bottomAsymmetry <= _maxShoulderAsymmetry;
-
-          if (formOk) {
-            final now = DateTime.now();
-            final diff = _lastRepTime == null
-                ? _minRepDuration + const Duration(seconds: 1)
-                : now.difference(_lastRepTime!);
-            if (diff >= _minRepDuration) {
-              _repCount++;
-              _lastRepTime = now;
-            }
-          }
-
+          _repCount++;
+          
           _phase = _PushupPhase.up;
           _bottomFrameCount = 0;
           _bottomPlankDev = 0.0;
