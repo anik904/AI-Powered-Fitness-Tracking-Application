@@ -201,7 +201,7 @@ class SyncService {
           if (response.challenge!.startDate != null) {
             await prefs.setString(
               'challenge_start_date',
-              response.challenge!.startDate!.toIso8601String(),
+              response.challenge!.startDate!.toLocal().toIso8601String(),
             );
           } else {
             await prefs.remove('challenge_start_date');

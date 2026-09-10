@@ -15,7 +15,7 @@ class WorkoutNotifier extends Notifier<List<WorkoutSession>> {
   }
 
   Future<void> loadRecentWorkouts() async {
-    final workouts = await DatabaseHelper.instance.getRecentWorkouts(limit: 100);
+    final workouts = await DatabaseHelper.instance.getRecentWorkouts(limit: 1000);
     state = workouts;
   }
 

@@ -63,6 +63,7 @@ class UserAuthState {
 class AuthNotifier extends Notifier<UserAuthState> {
   StreamSubscription<User?>? _authSubscription;
   late final SyncService _syncService;
+  bool _isHandlingAuth = false;
 
   @override
   UserAuthState build() {
@@ -95,7 +96,7 @@ class AuthNotifier extends Notifier<UserAuthState> {
       }
 
       state = state.copyWith(user: user, clearUser: user == null);
-      if (user != null) {
+      if (user != null && !_isHandlingAuth) {
         _onUserAuthenticated(user);
       }
     });
@@ -119,7 +120,7 @@ class AuthNotifier extends Notifier<UserAuthState> {
     await prefs.setBool('is_guest_mode', false);
     await prefs.setBool('has_completed_onboarding', true);
 
-    // 1. Fetch user profile from backend to get saved display name if available
+    // Fetch user profile from backend to get saved display name if available
     String? backendName;
     try {
       final backendUser = await _syncService.getBackendUser(user.uid);
@@ -187,7 +188,7 @@ class AuthNotifier extends Notifier<UserAuthState> {
       developer.log('Post-auth download remote state error: $e', name: 'AuthNotifier');
     }
 
-    // 3. Refresh local providers with newly downloaded online data
+    // Refresh local providers with newly downloaded online data
     try {
       await ref.read(workoutProvider.notifier).loadRecentWorkouts();
       await ref.read(exerciseGoalProvider.notifier).reloadFromDb();
@@ -199,6 +200,7 @@ class AuthNotifier extends Notifier<UserAuthState> {
 
   Future<bool> signIn({required String email, required String password}) async {
     state = state.copyWith(isLoading: true, error: null);
+    _isHandlingAuth = true;
     try {
       final prefs = ref.read(sharedPreferencesProvider);
       final wasGuest = (prefs.getBool('is_guest_mode') ?? true);
@@ -236,11 +238,14 @@ class AuthNotifier extends Notifier<UserAuthState> {
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
       return false;
+    } finally {
+      _isHandlingAuth = false;
     }
   }
 
   Future<bool> register({required String email, required String password, String? displayName}) async {
     state = state.copyWith(isLoading: true, error: null);
+    _isHandlingAuth = true;
     try {
       final prefs = ref.read(sharedPreferencesProvider);
       final wasGuest = (prefs.getBool('is_guest_mode') ?? true);
@@ -281,6 +286,8 @@ class AuthNotifier extends Notifier<UserAuthState> {
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
       return false;
+    } finally {
+      _isHandlingAuth = false;
     }
   }
 
